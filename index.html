@@ -78,12 +78,16 @@
 
         .toggle-btn { display: flex; gap: 10px; margin-bottom: 20px; }
         .toggle-btn button { 
-            flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; 
-            font-weight: bold; font-size: 14px; color: white; opacity: 0.3; transition: all 0.3s; 
+            flex: 1; padding: 12px; border-radius: 6px; cursor: pointer; 
+            font-weight: bold; font-size: 14px; transition: all 0.3s; border: 1px solid transparent;
         }
-        .btn-long { background-color: var(--accent-green); }
-        .btn-short { background-color: var(--accent-red); }
-        .btn-long.active, .btn-short.active { opacity: 1; }
+        /* Style mới cho nút bấm: Nền nhạt, viền màu, chữ màu khi chưa chọn */
+        .btn-long { background-color: rgba(14, 203, 129, 0.1); color: var(--accent-green); border-color: rgba(14, 203, 129, 0.3); }
+        .btn-short { background-color: rgba(246, 70, 93, 0.1); color: var(--accent-red); border-color: rgba(246, 70, 93, 0.3); }
+        
+        /* Hiệu ứng Glow phát sáng rực rỡ khi được chọn (Active) */
+        .btn-long.active { background-color: var(--accent-green); color: #000; border-color: var(--accent-green); box-shadow: 0 4px 15px rgba(14, 203, 129, 0.3); }
+        .btn-short.active { background-color: var(--accent-red); color: #fff; border-color: var(--accent-red); box-shadow: 0 4px 15px rgba(246, 70, 93, 0.3); }
 
         .action-btn { 
             width: 100%; padding: 14px; background-color: var(--accent-yellow); color: #000; 
@@ -125,12 +129,17 @@
 
         /* Đa khung thời gian */
         .mtf-container { display: flex; gap: 10px; margin-bottom: 15px; }
-        .mtf-box { flex: 1; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 10px; text-align: center; }
+        .mtf-box { flex: 1; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 10px; text-align: center; transition: 0.3s; }
         .mtf-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 5px;}
         .mtf-value { font-size: 13px; font-weight: bold; }
-        .trend-up { border-bottom: 3px solid var(--accent-green); } .trend-up .mtf-value { color: var(--accent-green); }
-        .trend-down { border-bottom: 3px solid var(--accent-red); } .trend-down .mtf-value { color: var(--accent-red); }
         
+        /* Style mới cho hộp Xu hướng: Bọc nguyên khung viền màu + đổ nền nhạt như giao diện cũ */
+        .trend-up { border: 1px solid var(--accent-green); background-color: rgba(14, 203, 129, 0.05); } 
+        .trend-up .mtf-value { color: var(--accent-green); }
+        
+        .trend-down { border: 1px solid var(--accent-red); background-color: rgba(246, 70, 93, 0.05); } 
+        .trend-down .mtf-value { color: var(--accent-red); }
+
         /* Volume Profile */
         .vp-box { background: linear-gradient(145deg, rgba(0, 229, 255, 0.1), rgba(0, 0, 0, 0)); border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         .vp-status { font-weight: bold; font-size: 12px; padding: 6px 10px; border-radius: 4px; }
@@ -589,7 +598,10 @@
 
     function calculate() {
         let r=parseFloat(document.getElementById('risk').value); let e=parseFloat(document.getElementById('entry').value); let sl=parseFloat(document.getElementById('sl').value); let tp=parseFloat(document.getElementById('tp').value);
-        let feeRate = parseFloat(document.getElementById('feeType').value);
+        
+        // ĐÃ SỬA LỖI: Cố định phí Taker 0.07% thay vì tìm ID feeType không tồn tại ở giao diện
+        let feeRate = 0.0007; 
+        
         if(!e||!sl||e===sl||!r) return; let slD=Math.abs(e-sl); let sz=r/slD; let fee=(sz*e)*feeRate;
         document.getElementById('posSize').innerText = sz.toFixed(4); document.getElementById('totalFee').innerText = "-"+fee.toFixed(3); document.getElementById('maxLoss').innerText = "-"+(r+fee).toFixed(2);
         if(tp){ let tpD=Math.abs(tp-e); document.getElementById('rrRatio').innerText = "1 : "+(tpD/slD).toFixed(2); let net=(sz*tpD)-fee; document.getElementById('netProfit').innerText = (net>0?"+":"")+net.toFixed(2); document.getElementById('netProfit').className = net>0?'res-val text-green':'res-val text-red'; }
