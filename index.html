@@ -3,118 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Giao Dịch V20 - Vận Hành Mượt Mà & AI Hoàn Chỉnh</title>
+    <title>Hệ Thống Giao Dịch V25 - Vận Hành Tuyệt Đối</title>
     <!-- Thư viện mã hóa CryptoJS để tạo chữ ký API Binance -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         :root {
-            --bg-dark: #0b0e11; --bg-panel: #1e2329; --bg-card: #2B3139;
-            --text-main: #EAECEF; --text-muted: #848E9C;
-            --accent-green: #0ECB81; --accent-red: #F6465D; --accent-yellow: #FCD535;
-            --accent-blue: #2962FF; --accent-purple: #B620E0; --accent-cyan: #00E5FF;
+            --bg-dark: #0b0e11;
+            --bg-panel: #1e2329;
+            --bg-card: #2B3139;
+            --text-main: #EAECEF;
+            --text-muted: #848E9C;
+            --accent-green: #0ECB81;
+            --accent-red: #F6465D;
+            --accent-yellow: #FCD535;
+            --accent-blue: #2962FF;
+            --accent-purple: #B620E0;
+            --accent-cyan: #00E5FF;
             --border-color: #363c44;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; max-width: 1280px; width: 100%; align-items: start; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .panel {
+            background-color: var(--bg-panel);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            transition: 0.3s;
+        }
+
+        .panel.full-width {
+            grid-column: 1 / -1;
+            border-color: rgba(182, 32, 224, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
         
-        .panel { background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: box-shadow 0.3s; }
-        .panel.full-width { grid-column: 1 / -1; border-color: rgba(182, 32, 224, 0.4); position: relative; overflow: hidden; }
-        .panel.full-width::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-yellow)); }
-        .panel.api-panel { border-color: rgba(243, 186, 47, 0.5); background: linear-gradient(180deg, var(--bg-panel) 0%, rgba(243, 186, 47, 0.05) 100%); }
+        .panel.full-width::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-yellow));
+        }
+        
+        .panel.api-panel {
+            border-color: rgba(252, 213, 53, 0.5);
+            background: linear-gradient(180deg, var(--bg-panel) 0%, rgba(252, 213, 53, 0.05) 100%);
+        }
 
-        @keyframes panelHighlight { 0% { box-shadow: 0 0 0 0 rgba(14, 203, 129, 0.5); } 50% { box-shadow: 0 0 20px 5px rgba(14, 203, 129, 0.3); border-color: var(--accent-green); } 100% { box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: var(--border-color); } }
-        .highlight-active { animation: panelHighlight 1.5s ease-out; }
+        h2 {
+            text-align: center;
+            color: var(--text-main);
+            margin-top: 0;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
 
-        h2 { text-align: center; color: var(--text-main); margin-top: 0; font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 16px; text-transform: uppercase; }
         h2 span { color: var(--accent-yellow); }
+        h2 span.ai-icon { color: var(--accent-purple); }
+        h2 span.api-icon { color: #F3BA2F; } 
+
+        .step-badge {
+            display: inline-block; background: var(--accent-purple); color: white;
+            border-radius: 4px; padding: 2px 6px; font-size: 11px; margin-right: 5px; font-weight: bold;
+        }
 
         .input-group { margin-bottom: 15px; }
-        .input-group.row { display: flex; gap: 15px; flex-wrap: wrap; }
-        .input-group.row > div { flex: 1 1 120px; }
-        
-        label { display: block; margin-bottom: 6px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        input, select { width: 100%; padding: 12px; background-color: #0b0e11; border: 1px solid #474D57; color: #FFFFFF; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none; transition: border 0.2s; }
+        .input-group.row { display: flex; gap: 15px; }
+        .input-group.row > div { flex: 1; }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background-color: #0b0e11;
+            border: 1px solid #474D57;
+            color: #FFFFFF;
+            border-radius: 6px;
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border 0.2s;
+        }
+
         input:focus, select:focus { border-color: var(--accent-yellow); }
         input[type="password"] { font-family: monospace; letter-spacing: 2px; }
 
-        .toggle-btn { display: flex; gap: 10px; margin-bottom: 15px; }
-        .toggle-btn button { flex: 1; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.3s; border: 1px solid transparent; }
-        .btn-long { background-color: rgba(14, 203, 129, 0.1); color: var(--accent-green); border-color: rgba(14, 203, 129, 0.3); }
-        .btn-short { background-color: rgba(246, 70, 93, 0.1); color: var(--accent-red); border-color: rgba(246, 70, 93, 0.3); }
-        .btn-long.active { background-color: var(--accent-green); color: #000; border-color: var(--accent-green); box-shadow: 0 4px 15px rgba(14, 203, 129, 0.3); }
-        .btn-short.active { background-color: var(--accent-red); color: #fff; border-color: var(--accent-red); box-shadow: 0 4px 15px rgba(246, 70, 93, 0.3); }
+        .toggle-btn { display: flex; gap: 10px; margin-bottom: 20px; }
+        .toggle-btn button {
+            flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer;
+            font-weight: bold; font-size: 14px; color: white; opacity: 0.3; transition: all 0.3s;
+        }
+        .btn-long { background-color: var(--accent-green); }
+        .btn-short { background-color: var(--accent-red); }
+        .btn-long.active, .btn-short.active { opacity: 1; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 
-        .action-btn { width: 100%; padding: 14px; background-color: var(--accent-yellow); color: #000; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; transition: opacity 0.2s; }
+        .mtf-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        .mtf-box { flex: 1; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center; }
+        .mtf-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 5px;}
+        .mtf-value { font-size: 13px; font-weight: bold; }
+        .trend-up { border-bottom: 3px solid var(--accent-green); }
+        .trend-up .mtf-value { color: var(--accent-green); }
+        .trend-down { border-bottom: 3px solid var(--accent-red); }
+        .trend-down .mtf-value { color: var(--accent-red); }
+        .trend-neutral { border-bottom: 3px solid var(--text-muted); }
+
+        .vp-box {
+            background: linear-gradient(145deg, rgba(0, 229, 255, 0.1), rgba(0, 0, 0, 0)); border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 8px; padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .vp-info { display: flex; flex-direction: column; gap: 4px;}
+        .vp-status { font-weight: bold; font-size: 13px; padding: 4px 8px; border-radius: 4px; }
+        .vp-strong { background-color: rgba(14, 203, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .vp-weak { background-color: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        .vp-wait { background-color: rgba(132, 142, 156, 0.2); color: var(--text-muted); }
+
+        .live-action-box {
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 12px; margin-bottom: 15px;
+        }
+        .strat-wait { background-color: rgba(132, 142, 156, 0.1); color: var(--text-muted); }
+        .strat-alert { 
+            background-color: rgba(252, 213, 53, 0.2); color: var(--accent-yellow); 
+            border: 1px solid var(--accent-yellow); animation: pulseAlert 1.5s infinite; 
+        }
+        .strat-danger { background-color: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        @keyframes pulseAlert { 0% { box-shadow: 0 0 0 0 rgba(252, 213, 53, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(252, 213, 53, 0); } 100% { box-shadow: 0 0 0 0 rgba(252, 213, 53, 0); } }
+
+        .checklist-box {
+            background-color: rgba(252, 213, 53, 0.05); border: 1px solid rgba(252, 213, 53, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 15px;
+        }
+        .checklist-title { font-size: 12px; color: var(--accent-yellow); font-weight: bold; margin-bottom: 8px; text-transform: uppercase; display: block;}
+        .check-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; color: var(--text-main); cursor: pointer; }
+        .check-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent-yellow); }
+
+        .fibo-table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 12px; }
+        .fibo-table th, .fibo-table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .fibo-table th { color: var(--text-muted); font-weight: normal; background: rgba(0,0,0,0.3); }
+        .lvl-golden { background-color: rgba(252, 213, 53, 0.05); border-left: 3px solid var(--accent-yellow); }
+        .lvl-danger { background-color: rgba(246, 70, 93, 0.05); border-left: 3px solid var(--accent-red); }
+        .lvl-target { background-color: rgba(14, 203, 129, 0.05); border-left: 3px solid var(--accent-green); }
+        
+        .badge { font-size: 10px; padding: 2px 4px; border-radius: 3px; margin-left: 3px; font-weight: bold; }
+        .bg-yellow { background: var(--accent-yellow); color: #000; }
+        .bg-red { background: var(--accent-red); color: #fff; }
+        .bg-green { background: var(--accent-green); color: #fff; }
+
+        .results-box { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .card { background-color: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .card-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+        .result-row:last-child { margin-bottom: 0; }
+        .result-value { font-weight: bold; font-size: 14px;}
+        
+        .val-yellow { color: var(--accent-yellow); font-size: 18px; }
+        .val-green { color: var(--accent-green); }
+        .val-red { color: var(--accent-red); }
+        .val-blue { color: var(--accent-blue); }
+        hr { border: 0; height: 1px; background: var(--border-color); margin: 10px 0; }
+
+        .action-btn {
+            width: 100%; padding: 12px; background-color: var(--accent-yellow); color: #000;
+            border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer;
+            margin-top: 10px; transition: opacity 0.2s;
+        }
         .action-btn:hover { opacity: 0.9; }
         .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .checklist-container { background: rgba(252, 213, 53, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed rgba(252, 213, 53, 0.4); }
-        .check-item { display: flex; align-items: center; gap: 12px; cursor: pointer; margin-bottom: 12px; font-size: 13px; color: var(--text-main); line-height: 1.4; }
-        .check-item:last-child { margin-bottom: 0; }
-        .check-item input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; margin: 0; accent-color: var(--accent-yellow); cursor: pointer; }
-
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        .data-table th, .data-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        .data-table th { color: var(--text-muted); font-weight: normal; background: rgba(0,0,0,0.2); }
-        .text-green { color: var(--accent-green); font-weight: bold; }
-        .text-red { color: var(--accent-red); font-weight: bold; }
-        .text-blue { color: var(--accent-blue); font-weight: bold; }
-
-        .results-card { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 15px; }
-        .res-row { display:flex; justify-content:space-between; align-items: center; margin-bottom:10px; font-size: 14px; }
-        .res-row:last-child { margin-bottom: 0; }
-        .res-label { color: var(--text-muted); }
-        .res-val { font-weight: bold; font-size: 15px;}
-
-        .mtf-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
-        .mtf-box { flex: 1; min-width: 140px; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 10px; text-align: center; transition: 0.3s; }
-        .mtf-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 5px;}
-        .mtf-value { font-size: 14px; font-weight: bold; }
-        .mtf-desc { font-size: 11px; margin-top: 5px; display: block; opacity: 0.8;}
+        .btn-trade { background-color: #F3BA2F; color: black; font-size: 16px; margin-top: 20px; box-shadow: 0 4px 15px rgba(243, 186, 47, 0.3); }
+        .btn-trade:hover { box-shadow: 0 6px 20px rgba(243, 186, 47, 0.5); }
+        .console-log {
+            background-color: #000; color: #00FF00; font-family: monospace; font-size: 11px; padding: 10px; border-radius: 6px; margin-top: 15px; min-height: 50px; word-break: break-all;
+        }
         
-        .trend-up { border-left: 4px solid var(--accent-green); background: rgba(14, 203, 129, 0.05); } .trend-up .mtf-value { color: var(--accent-green); }
-        .trend-down { border-left: 4px solid var(--accent-red); background: rgba(246, 70, 93, 0.05); } .trend-down .mtf-value { color: var(--accent-red); }
-        .trend-neutral { border-left: 4px solid var(--text-muted); background-color: var(--bg-card); }
-
-        .live-action-box { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .strat-wait { background-color: rgba(132, 142, 156, 0.1); color: var(--text-muted); padding: 10px; border-radius: 6px; text-align: center; font-size: 13px; font-weight: bold; margin-top: 10px;}
-        .strat-alert { background-color: rgba(252, 213, 53, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); padding: 10px; border-radius: 6px; text-align: center; font-size: 13px; font-weight: bold; margin-top: 10px; animation: pulseAlertBox 1.5s infinite; }
-        .strat-danger { background-color: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); padding: 10px; border-radius: 6px; text-align: center; font-size: 13px; font-weight: bold; margin-top: 10px;}
-        @keyframes pulseAlertBox { 0% { box-shadow: 0 0 0 0 rgba(252, 213, 53, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(252, 213, 53, 0); } 100% { box-shadow: 0 0 0 0 rgba(252, 213, 53, 0); } }
-
         .radar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 15px; }
-        .radar-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: transform 0.2s; }
+        .radar-item {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;
+            display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: 0.2s;
+        }
         .radar-item:hover { transform: translateY(-3px); border-color: var(--accent-cyan); box-shadow: 0 4px 12px rgba(0, 229, 255, 0.15); }
-        .radar-item.in-zone { border: 2px solid var(--accent-yellow); background: rgba(252, 213, 53, 0.05); animation: radarPulse 1.5s infinite; }
-        @keyframes radarPulse { 0% { box-shadow: 0 0 0 0 rgba(252, 213, 53, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(252, 213, 53, 0); } 100% { box-shadow: 0 0 0 0 rgba(252, 213, 53, 0); } }
-        .radar-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 15px;}
+        .radar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 15px; }
         .radar-status { font-size: 11px; padding: 4px; border-radius: 4px; text-align: center; font-weight: bold; }
         .status-long { background: rgba(14, 203, 129, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
         .status-short { background: rgba(246, 70, 93, 0.1); color: var(--accent-red); border: 1px solid var(--accent-red); }
         .status-mixed { background: rgba(132, 142, 156, 0.1); color: var(--text-muted); border: 1px solid var(--border-color); }
-        .badge-quant { font-size: 10px; background: rgba(182, 32, 224, 0.2); color: var(--accent-purple); padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(182, 32, 224, 0.4); margin-left: 5px; }
+        .status-badge { font-size: 10px; padding: 2px 6px; border-radius: 12px; background: rgba(255,255,255,0.1); }
+        .radar-item.in-zone { border: 2px solid var(--accent-yellow); background: rgba(252, 213, 53, 0.05); animation: radarPulse 1.5s infinite; }
+        
+        .btn-expand { background-color: transparent; border: 1px dashed var(--accent-cyan); color: var(--accent-cyan); margin-top: 15px; }
+        .btn-expand:hover { background-color: rgba(0, 229, 255, 0.1); }
+
+        .system-sl-tracker { display: flex; justify-content: space-between; align-items: center; background: rgba(246, 70, 93, 0.05); border: 1px solid rgba(246, 70, 93, 0.3); border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .loss-dots { display: flex; gap: 8px; }
+        .loss-dot { width: 16px; height: 16px; border-radius: 50%; background: #474D57; border: 1px solid #2B3139; }
+        .loss-dot.active { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+
+        .tp-quick-btn {
+            background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted);
+            padding: 4px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; transition: 0.2s; margin-top: 5px; margin-right: 5px;
+        }
+        .tp-quick-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-main); }
+        .tp-quick-btn.fibo { border-color: rgba(252, 213, 53, 0.3); color: var(--accent-yellow); }
 
         .loader { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid var(--accent-purple); border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .badge { font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
-        .badge-ema { background-color: rgba(255,255,255,0.1); color: #fff; border: 1px solid #666; }
+
     </style>
 </head>
 <body>
+
+<!-- HỆ THỐNG CUSTOM TOAST THAY THẾ ALERT BỊ CHẶN -->
+<div id="customToast" style="position: fixed; top: -50px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: bold; font-size: 14px; z-index: 99999; transition: top 0.4s ease, opacity 0.4s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; min-width: 250px; opacity: 0; pointer-events: none;"></div>
 
 <div class="dashboard">
 
     <!-- PANEL 0: RADAR -->
     <div class="panel full-width">
-        <h2><span style="color: var(--accent-cyan);">📡 0.</span> RADAR ĐỊNH LƯỢNG VĨ MÔ (EMA 34/89)</h2>
-        <div style="text-align: center; margin-bottom: 10px;">
-            <button class="action-btn" style="width: auto; padding: 12px 30px; background-color: var(--accent-cyan); color: #000;" onclick="scanRadar()" id="btnRadar">📡 Khởi Động Radar (Top 30)</button>
-            <button class="action-btn" style="width: auto; padding: 12px 30px; background: transparent; border: 1px dashed var(--accent-cyan); color: var(--accent-cyan);" onclick="scanRadar(true)" id="btnExpandRadar" style="display:none;">+ Quét Tiếp ➔</button>
+        <h2><span style="color: var(--accent-cyan);">📡 PANEL ĐẦU VÀO:</span> RADAR ĐỊNH LƯỢNG VĨ MÔ</h2>
+        <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 15px;">
+            Thẻ nào nháy đèn <strong style="color:var(--accent-yellow);">🔥 ĐANG IN ZONE</strong> tức là giá đã lùi về vùng Hộp Vàng (EMA 34/89), <strong style="color:white;">hãy Click trực tiếp vào thẻ đó</strong> để nạp dữ liệu xuống Panel 1.
+        </p>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="action-btn" style="width: auto; padding: 10px 30px; background-color: var(--accent-cyan); color: #000;" onclick="scanRadar()" id="btnRadar">
+                📡 Khởi Động Radar (Quét Top 30)
+            </button>
         </div>
         <div class="radar-grid" id="radarGrid">
-            <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-style: italic;">Chưa có dữ liệu. Hãy khởi động Radar...</div>
+            <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-style: italic;">
+                Chưa có dữ liệu. Nhấn nút khởi động...
+            </div>
+        </div>
+        <div style="text-align: center;">
+            <button class="action-btn btn-expand" onclick="expandRadar()" id="btnExpandRadar" style="display: none; width: auto; padding: 8px 20px;">
+                + Mở rộng quét tiếp 30 mã tiếp theo ➔
+            </button>
         </div>
     </div>
 
@@ -124,11 +278,14 @@
         
         <div class="input-group row" style="margin-bottom: 15px;">
             <div style="flex: 2;">
-                <label>Mã Coin</label>
-                <!-- Đã khôi phục syncSymbol() để Đồng bộ tên Coin xuống Cố vấn AI -->
+                <label><span class="step-badge">1</span> Mã Coin</label>
                 <input type="text" id="symbolInput" value="ETHUSDT" oninput="this.value = this.value.toUpperCase(); syncSymbol();">
             </div>
-            <div style="flex: 1; display: flex; align-items: flex-end;"><button class="action-btn" style="margin-top:0; background-color: var(--accent-blue); color: white;" onclick="scanMultiTimeframe()" id="btnScan">Quét Dữ Liệu</button></div>
+            <div style="flex: 1; display: flex; align-items: flex-end;">
+                <button class="action-btn" style="margin-top:0; background-color: var(--accent-blue); color: white;" onclick="scanMultiTimeframe()" id="btnScan">
+                    Quét Đa Tầng
+                </button>
+            </div>
         </div>
         
         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -151,11 +308,13 @@
         </div>
         
         <div class="live-action-box" id="liveActionBox">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-muted); font-weight:bold;">GIÁ HIỆN TẠI:</span>
-                <span id="displayCurrentPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-cyan);">0.00</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 11px; color: var(--accent-cyan); font-weight: bold;">Giá Hiện Tại</span>
+                <span id="displayCurrentPrice" style="font-size: 22px; font-weight: bold; color: white;">0.00</span>
             </div>
-            <div id="actionStrategy" class="strat-wait">Chờ phân tích biểu đồ...</div>
+            <div id="actionStrategy" style="font-size: 13px; font-weight: bold; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: var(--text-muted); text-align: center;">
+                Chờ Quét Dữ Liệu
+            </div>
         </div>
 
         <div class="toggle-btn" id="fiboToggle" style="margin-bottom: 10px; display: none;">
@@ -181,21 +340,25 @@
             </tbody>
         </table>
         
-        <button class="action-btn" onclick="transferToRR()" style="display:none; background-color: var(--accent-green); color: white;" id="btnTransfer">⬇ Khóa Chiến Thuật & Chuyển Sang Bóp Cò ⬇</button>
+        <div style="text-align: center; margin-top: 15px;">
+            <label><span class="step-badge">2</span> Chuyển thông số sang máy tính Volume</label>
+            <button class="action-btn" onclick="transferToRR()" id="btnTransfer" style="display:none; background-color: var(--accent-green); color: black;">
+                ⬇ NẠP DỮ LIỆU SANG BẢNG TÍNH ⬇
+            </button>
+        </div>
     </div>
 
     <!-- PANEL 2: QUẢN TRỊ VỐN % -->
     <div class="panel" id="panel2">
         <h2><span>2.</span> QUẢN TRỊ VỐN & KHỐI LƯỢNG LỆNH</h2>
         
-        <div class="checklist-container">
-            <span style="font-size: 13px; color: var(--accent-yellow); font-weight: bold; margin-bottom: 10px; display: block; text-transform: uppercase;">⚠️ Chốt Kỷ Luật Bắt Buộc (Bước 2, 5)</span>
+        <div class="checklist-box">
+            <span class="checklist-title">⚠️ Chốt Kỷ Luật Bắt Buộc (Bước 2, 5)</span>
             <label class="check-item"><input type="checkbox" id="chkTrend" onchange="validateChecklist()"> 1. Xu hướng rõ (Không nằm trong vùng Sideway đan xen)</label>
             <label class="check-item"><input type="checkbox" id="chkSweep" onchange="validateChecklist()"> 2. Giá hồi về vùng EMA 34/89 & Có Nến từ chối (Rút chân)</label>
-            <label class="check-item"><input type="checkbox" id="chkMACD" onchange="validateChecklist()"> 3. Động Lượng: <strong style="color:var(--accent-red); margin-left:4px;">KHÔNG BỊ PHÂN KỲ ĐẢO CHIỀU TRÊN H4</strong> (RSI/MACD)</label>
+            <label class="check-item"><input type="checkbox" id="chkMACD" onchange="validateChecklist()"> 3. Động Lượng: <strong style="color:var(--accent-red); margin-left:4px;">KHÔNG BỊ PHÂN KỲ ĐẢO CHIỀU TRÊN H4</strong></label>
             
-            <!-- ĐÃ FIX: Chỉnh sửa cảnh báo thân thiện hơn -->
-            <div id="checkWarning" style="color: var(--accent-red); font-size: 12px; font-weight: bold; margin-top: 10px; padding: 10px; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); border-radius: 6px;">
+            <div id="checkWarning" style="color: var(--accent-red); font-size: 12px; font-weight: bold; margin-top: 10px; padding: 10px; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); border-radius: 6px; text-align: center;">
                 ⚠️ NÚT ĐẶT LỆNH ĐANG KHÓA: Hãy tích đủ 3 điều kiện trên để mở khóa nút "Bóp Cò"!
             </div>
         </div>
@@ -205,6 +368,7 @@
             <button id="btnShort" class="btn-short" onclick="setTradeType('short')">Vị thế SHORT</button>
         </div>
 
+        <!-- QUẢN TRỊ VỐN DỰA THEO SỐ DƯ TỔNG VÀ TỶ LỆ PHẦN TRĂM (%) -->
         <div class="input-group row" style="background: rgba(41, 98, 255, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed var(--accent-blue); margin-bottom: 15px;">
             <div style="flex:1;">
                 <label>Tổng Số Dư Ví (USDT)</label>
@@ -216,8 +380,11 @@
             </div>
         </div>
 
-        <!-- BỎ KHÓA MỜ: Các ô nhập liệu luôn luôn chỉnh sửa được -->
-        <div id="lockGroup" style="transition: 0.3s;">
+        <div id="drawdownWarning" style="display: none; color: white; font-size: 12px; font-weight: bold; margin-bottom: 15px; padding: 10px; background: var(--accent-red); border-radius: 6px;">
+            🚨 BÁO ĐỘNG ĐỎ: Rủi ro vượt quá 10% tổng vốn! Tuyệt đối không gồng lỗ kiểu này. Bắt buộc hạ Volume hoặc siết SL lại!
+        </div>
+
+        <div id="calcGroup">
             <div class="input-group row">
                 <div style="flex:1;">
                     <label>Tiền Lỗ Tối Đa (USDT) <span class="badge badge-ema" style="background:var(--accent-red)">Tự động</span></label>
@@ -229,28 +396,116 @@
                 </div>
             </div>
 
+            <div class="input-group">
+                <label>Giá SL (Dưới đáy/đỉnh gần nhất để bảo vệ vốn)</label>
+                <input type="number" id="sl" oninput="calculate()">
+            </div>
+
             <div class="input-group row">
-                <div><label>Giá SL (Dưới đáy gần nhất)</label><input type="number" id="sl" oninput="calculate()"></div>
-                <div><label>TP1 (Fibo 1.618 / Kháng cự cũ)</label><input type="number" id="tp1" style="border-color: var(--accent-green);" oninput="calculate()"></div>
-                <div><label>TP2 (Fibo 2.618)</label><input type="number" id="tp2" style="border-color: var(--accent-blue);" oninput="calculate()"></div>
+                <div style="flex: 1;">
+                    <label>TP1 (Chốt 50% Trước Cản)</label>
+                    <input type="number" id="tp1" style="border-color: var(--accent-green);" oninput="calculate()">
+                    <div>
+                        <button class="tp-quick-btn" onclick="quickSetTP(1, 1)">Tỷ lệ R:R 1:1</button>
+                        <button class="tp-quick-btn" onclick="quickSetTP(1, 2)">Tỷ lệ R:R 1:2</button>
+                        <button class="tp-quick-btn" onclick="quickSetTP(1, 'c')">Đỉnh/Đáy Cũ</button>
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <label>TP2 (Gồng 50% Theo Fibo)</label>
+                    <input type="number" id="tp2" style="border-color: var(--accent-blue);" oninput="calculate()">
+                    <div>
+                        <button class="tp-quick-btn fibo" onclick="quickSetTP(2, 1.618)">Fibo Mở rộng 1.618</button>
+                        <button class="tp-quick-btn fibo" onclick="quickSetTP(2, 2.618)">Fibo Mở rộng 2.618</button>
+                    </div>
+                </div>
             </div>
             
-            <div class="results-card">
-                <div class="res-row"><span class="res-label">Khối Lượng Lệnh (Size):</span> <span class="res-val" style="color:var(--accent-yellow); font-size:22px;" id="posSize">0.00</span></div>
-                <div class="res-row"><span class="res-label">R:R Kép (Kỳ vọng):</span> <span class="res-val" id="rrRatio">1 : 0.00</span></div>
-                <hr style="margin: 10px 0;">
-                <div class="res-row"><span class="res-label">Chốt 50% ở TP1:</span> <span class="res-val text-green" id="profit1">+0.00 USDT</span></div>
-                <div class="res-row"><span class="res-label">Chốt 50% ở TP2:</span> <span class="res-val text-blue" id="profit2">+0.00 USDT</span></div>
-                <div class="res-row" style="background: rgba(14,203,129,0.1); padding: 5px; border-radius: 4px; margin-top: 5px;"><span class="res-label" style="color:white;">Tổng Thắng (Full TP):</span> <span class="res-val text-green" id="netProfit">+0.00 USDT</span></div>
-                <div class="res-row"><span class="res-label">Thua Mất Tối Đa (Dính SL):</span> <span class="res-val text-red" id="maxLoss">-0.00 USDT</span></div>
-                <div class="res-row"><span class="res-label" style="font-size:11px;">(Đã gồm phí sàn ước tính:</span> <span class="res-val" style="font-size:11px; color:var(--accent-red);" id="totalFee">-0.00 USDT)</span></div>
+            <div class="results-box">
+                <div class="card">
+                    <span class="card-title">Chỉ Số Giao Dịch Cơ Bản</span>
+                    <div class="result-row">
+                        <span class="result-label" style="color: var(--accent-yellow);">Khối Lượng Lệnh (Size tự scale):</span>
+                        <span class="result-value val-yellow" id="posSize">0.00</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Khoảng Cách SL Tương Đối:</span>
+                        <span class="result-value text-red" id="slDistancePercent">0.00%</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Tỷ lệ Risk:Reward (R:R):</span>
+                        <span class="result-value" id="rrRatio">1 : 0.00</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Giá Trị Vị Thế Thực Tế:</span>
+                        <span class="result-value" id="notionalValue">0.00 USDT</span>
+                    </div>
+                </div>
+                
+                <div class="card" style="border-color: #2962FF;">
+                    <span class="card-title" style="color: var(--accent-blue);">Báo Cáo Kế Toán Sàn (Bắt buộc nhìn)</span>
+                    <div class="result-row">
+                        <span class="result-label">Phí Sàn Ước Tính (Vào/Ra):</span>
+                        <span class="result-value val-red" id="totalFee">-0.00 USDT</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">GIÁ ĐỂ HÒA VỐN THẬT:</span>
+                        <span class="result-value val-yellow" id="breakevenPrice">0.00</span>
+                    </div>
+                    <hr style="border-color: rgba(255,255,255,0.1);">
+                    <div class="result-row">
+                        <span class="result-label">Lỗ Tối Đa (Nếu quét SL):</span>
+                        <span class="result-value val-red" id="maxLoss">-0.00 USDT</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Chốt 50% ở TP1:</span>
+                        <span class="result-value text-green" id="profit1">+0.00 USDT</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Chốt 50% ở TP2:</span>
+                        <span class="result-value text-blue" id="profit2">+0.00 USDT</span>
+                    </div>
+                    <div class="result-row" style="background: rgba(14,203,129,0.1); padding: 8px; border-radius: 4px; margin-top: 5px;">
+                        <span class="result-label" style="color:white; font-weight:bold;">Tổng Thắng (Full TP):</span> 
+                        <span class="result-value text-green" style="font-size: 18px;" id="netProfit">+0.00 USDT</span>
+                    </div>
+                </div>
+
+                <!-- Bảng nhắc nhở Trailing Stop -->
+                <div style="background: rgba(41, 98, 255, 0.1); border-left: 3px solid var(--accent-blue); padding: 10px; margin-top: 5px; border-radius: 4px;">
+                    <span style="display:block; font-size: 11px; color: var(--accent-blue); font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">🛡️ Kế Hoạch Trailing Stop Bảo Vệ Lãi:</span>
+                    <label style="font-size: 12px; color: var(--text-main); display: flex; gap: 8px; cursor: pointer; align-items: center;">
+                        <input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent-blue);"> 
+                        Khi giá cắn TP1, BẮT BUỘC dời SL về <span id="priceAt1R" style="color:var(--accent-yellow); font-weight:bold;">0.00</span> (Hòa vốn) để bảo toàn 50% lãi.
+                    </label>
+                </div>
+
+                <!-- BỘ ĐẾM KỶ LUẬT DRAWDOWN -->
+                <div class="system-sl-tracker">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 13px; color: var(--text-main);">Bộ Đếm Kỷ Luật (Drawdown)</h4>
+                        <p style="margin: 0; font-size: 11px; color: var(--text-muted);">Thua 3 lệnh liên tiếp -> TT Sideway -> Tự khóa đặt lệnh.</p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                        <div class="loss-dots" id="lossDots">
+                            <div class="loss-dot"></div>
+                            <div class="loss-dot"></div>
+                            <div class="loss-dot"></div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="logResult('win')" style="background: rgba(14, 203, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">✅ Win (Reset)</button>
+                            <button onclick="logResult('loss')" style="background: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">❌ Loss (+1)</button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
     <!-- PANEL 3: BỆ PHÓNG TÊN LỬA -->
     <div class="panel api-panel">
-        <h2><span style="color: #F3BA2F;">⚡ 3.</span> BỆ PHÓNG LỆNH BINANCE</h2>
+        <h2><span class="api-icon">⚡ 3.</span> BỆ PHÓNG LỆNH BINANCE</h2>
         <div style="font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px dashed var(--border-color);">
             <strong style="color: var(--accent-yellow);">QUY TRÌNH:</strong> Đảm bảo Đã tick 3 Chốt An Toàn ở Panel 2 -> Bấm nút nã ENTRY Market -> Bật app điện thoại cài SL/TP tự động để bảo vệ vốn.
         </div>
@@ -261,19 +516,21 @@
         <div class="input-group row">
             <div><label>Vị Thế</label><select id="positionMode"><option value="HEDGE" selected>Hedge Mode</option><option value="ONE_WAY">One-way Mode</option></select></div>
             <div>
-                <label>Loại Lệnh</label>
+                <label>Loại Lệnh Đẩy Sàn</label>
                 <select id="apiOrderType" style="color:var(--accent-yellow); font-weight:bold; background: rgba(252, 213, 53, 0.1);">
-                    <option value="MARKET" selected>🚀 VÀO MARKET NGAY</option>
-                    <option value="LIMIT">🎯 LIMIT (Treo chờ vùng giá trị)</option>
+                    <option value="MARKET" selected>🚀 COMBO VIP: MARKET + TỰ ĐỘNG ĐẶT TP/SL</option>
+                    <option value="LIMIT">🎯 COMBO LIMIT: ĐẶT BẪY + TỰ ĐỘNG ĐẶT TP/SL</option>
+                    <option value="ONLY_MARKET">⚡ CHỈ ĐÁNH MARKET (Tự cài SL bằng tay)</option>
                 </select>
             </div>
         </div>
         
-        <!-- NÚT BÓP CÒ KHÓA KHI CHƯA CHUẨN KỶ LUẬT -->
-        <button class="action-btn" style="background-color: var(--bg-card); color: var(--text-muted); font-size: 16px; padding: 15px; box-shadow: none;" onclick="placeBinanceOrder()" id="btnExecuteTrade" disabled>🔒 NÚT ĐẶT LỆNH ĐANG BỊ KHÓA</button>
+        <button class="action-btn btn-trade" onclick="placeBinanceOrder()" id="btnExecuteTrade" disabled>
+            🔒 NÚT ĐẶT LỆNH ĐANG BỊ KHÓA
+        </button>
         
-        <div id="manualReminder" style="display: none; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; animation: pulseAlertBox 1s infinite;">
-            <h3 style="color: var(--accent-red); margin: 0 0 10px 0; font-size: 14px;">🚨 LỆNH ĐÃ KHỚP! BẬT APP CÀI NGAY:</h3>
+        <div id="manualReminder" style="display: none; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;">
+            <h3 style="color: var(--accent-red); margin: 0 0 10px 0; font-size: 14px;">🚨 LỆNH ENTRY ĐÃ KHỚP! BẬT APP KIỂM TRA NGAY:</h3>
             <div style="font-size: 16px; font-weight: bold; margin-top: 10px; line-height: 1.6;">
                 Cắt lỗ (SL): <span id="remindSL" style="color: var(--accent-red); background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px;">0.00</span><br>
                 TP1 (50% Vol): <span id="remindTP1" style="color: var(--accent-green); background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px;">0.00</span><br>
@@ -344,12 +601,11 @@
             <div style="flex: 1; min-width: 300px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="font-size: 13px; color: var(--accent-yellow); margin: 0;">📌 Danh Sách Theo Dõi</h3>
-                    <!-- ĐÃ HỒI SINH: Nút phân tích Watchlist -->
                     <button class="action-btn" style="width:auto; margin:0; padding:6px 12px; font-size:11px; background: rgba(252, 213, 53, 0.1); border: 1px solid var(--accent-yellow); color: var(--accent-yellow);" onclick="analyzeWatchlist()" id="btnSoiList">✨ AI Phân Tích DS</button>
                 </div>
                 <div style="display:flex; gap:10px; margin-bottom: 10px;">
                     <input type="text" id="watchInput" placeholder="Mã Coin (VD: BTCUSDT)" style="padding: 6px; font-size: 12px;" oninput="this.value = this.value.toUpperCase();">
-                    <button class="btn-sync" style="background:var(--bg-card); color:white; border:1px solid #474D57; padding: 5px 10px; border-radius:4px; cursor:pointer;" onclick="addWatchlist()">Thêm</button>
+                    <button class="action-btn" style="background:var(--bg-card); color:white; border:1px solid #474D57; padding: 5px 10px; border-radius:4px; margin:0; width: auto;" onclick="addWatchlist()">Thêm</button>
                 </div>
                 <div id="watchlistAIPanel" style="display:none; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-left: 2px solid var(--accent-yellow); font-size: 12px; color: #EAECEF; max-height: 200px; overflow-y: auto;"></div>
                 <table class="data-table"><thead><tr><th>Mã Coin</th><th>Hành động</th></tr></thead><tbody id="watchBody"><tr><td colspan="2" style="text-align:center; font-style:italic;">Chưa có mã nào...</td></tr></tbody></table>
@@ -366,40 +622,73 @@
 </div>
 
 <script>
-    // --- VARIABLES & STATE ---
-    let allFuturesPairs = []; let currentScanLimit = 30;
+    // --- GLOBAL VARIABLES ---
+    let allFuturesPairs = []; 
+    let currentScanLimit = 30;
     let globalH4Trend = ''; let globalH4State = ''; 
     let globalEMA34_H1 = 0; let globalEMA89_H1 = 0; 
     let globalCurrentPrice = 0;
     let currentFiboData = {}; 
     let watchlistArr = [];
-    let fType = 'long'; // Khai báo rõ để không bị lỗi undefined
-    const apiKey = ""; // API Key từ môi trường Canvas
-    let lastAIResponseText = ""; // Lưu text để đọc TTS
+    let fType = 'long'; 
+    const apiKey = ""; 
+    let lastAIResponseText = ""; 
+    let consecutiveLosses = 0;
+    let isSystemLocked = false;
 
-    // --- TIỆN ÍCH ĐỂ SỬA LỖI UI ---
-    // Safe Setter: Đảm bảo không bao giờ bị lỗi 'Cannot set properties of null'
-    function safeSetText(elementId, value) {
-        const el = document.getElementById(elementId);
-        if (el) el.innerText = value;
-    }
-    
-    function safeSetHTML(elementId, htmlString) {
-        const el = document.getElementById(elementId);
-        if (el) el.innerHTML = htmlString;
+    // --- KHỞI TẠO BỌC LỖI LOCAL STORAGE ---
+    window.onload = function() {
+        try {
+            let savedLosses = localStorage.getItem('consecLossTracker');
+            if (savedLosses !== null) {
+                consecutiveLosses = parseInt(savedLosses);
+            }
+        } catch (error) {
+            console.warn("Môi trường chặn localStorage.");
+        }
+        updateLossDotsUI();
+    };
+
+    // --- HỆ THỐNG CUSTOM TOAST ---
+    function showToast(message, isError = false) {
+        let toast = document.getElementById('customToast');
+        if(!toast) {
+            toast = document.createElement('div');
+            toast.id = 'customToast';
+            toast.style.position = 'fixed';
+            toast.style.top = '-50px'; 
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.padding = '12px 20px';
+            toast.style.borderRadius = '8px';
+            toast.style.color = '#fff';
+            toast.style.fontWeight = 'bold';
+            toast.style.fontSize = '14px';
+            toast.style.zIndex = '99999';
+            toast.style.transition = 'top 0.4s ease, opacity 0.4s ease';
+            toast.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
+            toast.style.textAlign = 'center';
+            toast.style.minWidth = '250px';
+            toast.style.pointerEvents = 'none';
+            document.body.appendChild(toast);
+        }
+        toast.style.backgroundColor = isError ? 'var(--accent-red)' : 'var(--accent-green)';
+        toast.innerHTML = message;
+        toast.style.opacity = '1';
+        toast.style.top = '20px';
+
+        if(toast.hideTimeout) clearTimeout(toast.hideTimeout);
+        toast.hideTimeout = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.top = '-50px';
+        }, 3000);
     }
 
-    function safeSetValue(elementId, value) {
-        const el = document.getElementById(elementId);
-        if (el) el.value = value;
-    }
-
-    function safeSetClass(elementId, className) {
-        const el = document.getElementById(elementId);
-        if (el) el.className = className;
-    }
-
-    // Tiện ích hiển thị số thập phân động chống mất số cho altcoin nhỏ
+    // --- TIỆN ÍCH ---
+    function safeSetText(elementId, value) { const el = document.getElementById(elementId); if (el) el.innerText = value; }
+    function safeSetHTML(elementId, htmlString) { const el = document.getElementById(elementId); if (el) el.innerHTML = htmlString; }
+    function safeSetValue(elementId, value) { const el = document.getElementById(elementId); if (el) el.value = value; }
+    function safeSetClass(elementId, className) { const el = document.getElementById(elementId); if (el) el.className = className; }
     function pFmt(val) {
         if (isNaN(val) || val === null) return "0.00";
         if (val < 0.01) return val.toFixed(6);
@@ -407,75 +696,90 @@
         return val.toFixed(2);
     }
 
-    // --- MỞ CHART BINANCE / TRADINGVIEW ---
+    function updateLossDotsUI() {
+        const dots = document.querySelectorAll('.loss-dot');
+        for(let i=0; i<3; i++) {
+            if(dots[i]) {
+                if(i < consecutiveLosses) dots[i].classList.add('active');
+                else dots[i].classList.remove('active');
+            }
+        }
+
+        const warningEl = document.getElementById('checkWarning');
+        if(consecutiveLosses >= 3) {
+            isSystemLocked = true;
+            if(warningEl) {
+                warningEl.innerHTML = '🚨 HỆ THỐNG KHÓA: Bạn đã thua 3 lệnh liên tiếp! Thị trường đang Sideway điên loạn. Bắt buộc tắt máy nghỉ ngơi!';
+                warningEl.style.display = 'block';
+            }
+            validateChecklist(); 
+        } else {
+            isSystemLocked = false;
+            if(warningEl) warningEl.innerHTML = '⚠️ NÚT ĐẶT LỆNH ĐANG KHÓA: Hãy tích đủ 3 điều kiện trên để mở khóa nút "Bóp Cò"!';
+            validateChecklist();
+        }
+    }
+
+    function logResult(resultType) {
+        if(resultType === 'win') { consecutiveLosses = 0; } 
+        else if (resultType === 'loss') { if(consecutiveLosses < 3) consecutiveLosses++; }
+        try { localStorage.setItem('consecLossTracker', consecutiveLosses); } catch(e) {}
+        updateLossDotsUI();
+    }
+
     function openChart(platform) {
-        const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
-        if(!symbol) { alert("Vui lòng nhập mã coin trước khi mở Chart!"); return; }
+        const symbolEl = document.getElementById('symbolInput');
+        if(!symbolEl) return;
+        const symbol = symbolEl.value.trim().toUpperCase();
+        if(!symbol) { showToast("Vui lòng nhập mã coin trước khi mở Chart!", true); return; }
         if (platform === 'binance') window.open(`https://www.binance.com/vi/futures/${symbol}`, '_blank');
         else if (platform === 'tv') window.open(`https://www.tradingview.com/chart/?symbol=BINANCE:${symbol}.P`, '_blank');
     }
 
-    // ĐỒNG BỘ MÃ COIN
     function syncSymbol() {
-        const val = document.getElementById('symbolInput').value;
-        safeSetValue('assetName', val);
+        const el = document.getElementById('symbolInput');
+        if(el) safeSetValue('assetName', el.value);
     }
 
-    // THÊM NHANH VÀO WATCHLIST
     function addCurrentToWatchlist() {
-        const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
-        if(!symbol) return;
+        const symbolEl = document.getElementById('symbolInput');
+        if(!symbolEl) return;
+        const symbol = symbolEl.value.trim().toUpperCase();
+        if(!symbol) { showToast("Chưa nhập mã Coin!", true); return; }
         
         if(!watchlistArr.includes(symbol)) {
-            watchlistArr.push(symbol);
-            renderWatchlist();
-            
+            watchlistArr.push(symbol); renderWatchlist();
             const btn = document.getElementById('btnQuickWatch');
             if(btn) {
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '✅ Đã lưu';
-                btn.style.backgroundColor = 'rgba(14, 203, 129, 0.1)';
-                btn.style.color = 'var(--accent-green)';
-                btn.style.borderColor = 'var(--accent-green)';
-                
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.style.backgroundColor = 'rgba(182, 32, 224, 0.1)';
-                    btn.style.color = 'var(--accent-purple)';
-                    btn.style.borderColor = 'var(--accent-purple)';
-                }, 1500);
+                btn.innerHTML = '✅ Đã lưu'; btn.style.backgroundColor = 'rgba(14, 203, 129, 0.1)'; btn.style.color = 'var(--accent-green)'; btn.style.borderColor = 'var(--accent-green)';
+                setTimeout(() => { btn.innerHTML = originalText; btn.style.backgroundColor = 'rgba(182, 32, 224, 0.1)'; btn.style.color = 'var(--accent-purple)'; btn.style.borderColor = 'var(--accent-purple)'; }, 1500);
             }
-        } else {
-            alert(`Mã ${symbol} đã có sẵn trong Danh Sách Theo Dõi!`);
-        }
+            showToast(`Đã thêm ${symbol} vào danh sách theo dõi.`);
+        } else showToast(`Mã ${symbol} đã có sẵn trong Danh Sách Theo Dõi!`, true);
     }
 
-    // TÍNH TOÁN EMA 
     function calculateEMA(closes, period) {
         if (!closes || closes.length < period) return null;
-        let k = 2 / (period + 1);
-        let sum = 0;
+        let k = 2 / (period + 1); let sum = 0;
         for (let i = 0; i < period; i++) sum += closes[i];
         let ema = sum / period;
-        for (let i = period; i < closes.length; i++) {
-            ema = (closes[i] - ema) * k + ema;
-        }
+        for (let i = period; i < closes.length; i++) ema = (closes[i] - ema) * k + ema;
         return ema;
     }
 
-    // LẤY DỮ LIỆU NẾN AN TOÀN TỪ BINANCE
     async function getKlinesData(symbol, interval, limit = 200) {
         const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Lỗi kết nối API hoặc mã coin không tồn tại");
+        if (!res.ok) throw new Error("Lỗi API/Mã coin không hợp lệ");
         return await res.json();
     }
 
-    // QUÉT TREND & TÌM VÙNG GIÁ TRỊ EMA
     async function scanMultiTimeframe() {
-        const sym = document.getElementById('symbolInput').value.trim().toUpperCase(); 
+        const symbolEl = document.getElementById('symbolInput');
+        if(!symbolEl) return;
+        const sym = symbolEl.value.trim().toUpperCase(); 
         if(!sym) return;
-        
         const btn = document.getElementById('btnScan'); 
         if(btn) { btn.innerHTML = "..."; btn.disabled = true; }
 
@@ -484,7 +788,7 @@
             const h1Klines = await getKlinesData(sym, '1h', 200);
 
             if (!h4Klines || h4Klines.length < 89 || !h1Klines || h1Klines.length < 89) {
-                alert("Mã coin này quá mới, không có đủ 89 nến để tính toán EMA 89. Hãy thử với một mã coin khác!");
+                showToast("Mã coin này quá mới, không đủ 89 nến để tính EMA.", true);
                 if(btn) { btn.innerHTML = "Quét Dữ Liệu"; btn.disabled = false; }
                 return;
             }
@@ -495,37 +799,25 @@
             globalCurrentPrice = h1Closes[h1Closes.length - 1];
             safeSetText('displayCurrentPrice', pFmt(globalCurrentPrice));
 
-            const h4Ema34 = calculateEMA(h4Closes, 34);
-            const h4Ema89 = calculateEMA(h4Closes, 89);
-            
-            globalEMA34_H1 = calculateEMA(h1Closes, 34);
-            globalEMA89_H1 = calculateEMA(h1Closes, 89);
+            const h4Ema34 = calculateEMA(h4Closes, 34); const h4Ema89 = calculateEMA(h4Closes, 89);
+            globalEMA34_H1 = calculateEMA(h1Closes, 34); globalEMA89_H1 = calculateEMA(h1Closes, 89);
 
-            let h4StatusClass = "trend-neutral";
-            let h4StatusText = "";
+            let h4StatusClass = "trend-neutral", h4StatusText = "";
 
             if (globalCurrentPrice > h4Ema34 && h4Ema34 > h4Ema89) {
-                globalH4Trend = 'LONG'; globalH4State = 'UPTREND MẠNH';
-                h4StatusClass = 'trend-up';
+                globalH4Trend = 'LONG'; globalH4State = 'UPTREND MẠNH'; h4StatusClass = 'trend-up';
                 h4StatusText = `<span class="mtf-title">BƯỚC 1: XU HƯỚNG H4</span><span class="mtf-value">TĂNG RÕ RÀNG</span><span class="mtf-desc">Giá > EMA34 > EMA89. Chỉ Canh Mua.</span>`;
             } else if (globalCurrentPrice < h4Ema34 && h4Ema34 < h4Ema89) {
-                globalH4Trend = 'SHORT'; globalH4State = 'DOWNTREND MẠNH';
-                h4StatusClass = 'trend-down';
+                globalH4Trend = 'SHORT'; globalH4State = 'DOWNTREND MẠNH'; h4StatusClass = 'trend-down';
                 h4StatusText = `<span class="mtf-title">BƯỚC 1: XU HƯỚNG H4</span><span class="mtf-value">GIẢM RÕ RÀNG</span><span class="mtf-desc">Giá < EMA34 < EMA89. Chỉ Canh Bán.</span>`;
             } else {
-                globalH4Trend = 'SIDEWAY'; globalH4State = 'ĐI NGANG / TRANH CHẤP';
-                h4StatusClass = 'trend-neutral';
+                globalH4Trend = 'SIDEWAY'; globalH4State = 'ĐI NGANG / TRANH CHẤP'; h4StatusClass = 'trend-neutral';
                 h4StatusText = `<span class="mtf-title">BƯỚC 1: XU HƯỚNG H4</span><span class="mtf-value" style="color:var(--accent-yellow)">SIDEWAY</span><span class="mtf-desc">EMA đan xen. ĐỨNG NGOÀI!</span>`;
             }
-            safeSetClass('boxH4', `mtf-box ${h4StatusClass}`);
-            safeSetHTML('boxH4', h4StatusText);
+            safeSetClass('boxH4', `mtf-box ${h4StatusClass}`); safeSetHTML('boxH4', h4StatusText);
 
-            let maxZone = Math.max(globalEMA34_H1, globalEMA89_H1);
-            let minZone = Math.min(globalEMA34_H1, globalEMA89_H1);
-            
-            let h1StatusText = `<span class="mtf-title">BƯỚC 2: VÙNG GIÁ TRỊ EMA (H1)</span>
-                               <span class="mtf-value" style="color:var(--accent-yellow)">${pFmt(minZone)} - ${pFmt(maxZone)}</span>
-                               <span class="mtf-desc">Chờ giá kéo về vùng này để đón lõng</span>`;
+            let maxZone = Math.max(globalEMA34_H1, globalEMA89_H1); let minZone = Math.min(globalEMA34_H1, globalEMA89_H1);
+            let h1StatusText = `<span class="mtf-title">BƯỚC 2: VÙNG GIÁ TRỊ EMA (H1)</span><span class="mtf-value" style="color:var(--accent-yellow)">${pFmt(minZone)} - ${pFmt(maxZone)}</span><span class="mtf-desc">Chờ giá kéo về vùng này để đón lõng</span>`;
             safeSetHTML('boxH1', h1StatusText);
 
             setTradeType(globalH4Trend === 'SIDEWAY' ? 'long' : globalH4Trend.toLowerCase());
@@ -540,21 +832,18 @@
             let highest = -Infinity, lowest = Infinity;
             const lookback = Math.min(100, h1Klines.length);
             for (let i = h1Klines.length - lookback; i < h1Klines.length; i++) {
-                let h = parseFloat(h1Klines[i][2]);
-                let l = parseFloat(h1Klines[i][3]);
-                if (h > highest) highest = h;
-                if (l < lowest) lowest = l;
+                let h = parseFloat(h1Klines[i][2]); let l = parseFloat(h1Klines[i][3]);
+                if (h > highest) highest = h; if (l < lowest) lowest = l;
             }
             
-            safeSetValue('fiboHigh', highest);
-            safeSetValue('fiboLow', lowest);
-
+            safeSetValue('fiboHigh', highest); safeSetValue('fiboLow', lowest);
             calcFibo();
 
+            showToast("Quét dữ liệu đa tầng thành công!");
         } catch(e) { 
-            alert("Lỗi kết nối API: " + e.message); 
+            showToast("Lỗi API: " + e.message, true); 
         } finally { 
-            if(btn) { btn.innerHTML = "Quét Dữ Liệu"; btn.disabled = false; }
+            if(btn) { btn.innerHTML = "Quét Đa Tầng"; btn.disabled = false; } 
         }
     }
 
@@ -568,43 +857,31 @@
         calcFibo();
     }
 
-    // TÍNH TOÁN BẢNG CHIẾN THUẬT KẾT HỢP EMA & FIBO
     function calcFibo() {
-        const hEl = document.getElementById('fiboHigh');
-        const lEl = document.getElementById('fiboLow');
+        const hEl = document.getElementById('fiboHigh'); const lEl = document.getElementById('fiboLow');
         if (!hEl || !lEl) return;
         
-        const h = parseFloat(hEl.value);
-        const l = parseFloat(lEl.value);
-        const body = document.getElementById('fiboBody');
-        const btnTransfer = document.getElementById('btnTransfer');
+        const h = parseFloat(hEl.value); const l = parseFloat(lEl.value);
+        const body = document.getElementById('fiboBody'); const btnTransfer = document.getElementById('btnTransfer');
 
         if (isNaN(h) || isNaN(l) || h <= l) {
             if(body) body.innerHTML = '<tr><td colspan="3" style="text-align:center; color: #848E9C;">Chưa có dữ liệu Đỉnh/Đáy hợp lệ</td></tr>';
-            if(btnTransfer) btnTransfer.style.display = 'none';
-            return;
+            if(btnTransfer) btnTransfer.style.display = 'none'; return;
         }
 
-        const diff = h - l;
-        let sl, tp1, tp2;
+        const diff = h - l; let sl, tp1, tp2;
 
         if (fType === 'long') {
-            sl = l * 0.998; 
-            tp1 = l + (diff * 1.618); 
-            tp2 = l + (diff * 2.618); 
+            sl = l * 0.998; tp1 = l + (diff * 1.618); tp2 = l + (diff * 2.618); 
         } else {
-            sl = h * 1.002; 
-            tp1 = h - (diff * 1.618);
-            tp2 = h - (diff * 2.618);
+            sl = h * 1.002; tp1 = h - (diff * 1.618); tp2 = h - (diff * 2.618);
         }
 
-        let maxZone = Math.max(globalEMA34_H1, globalEMA89_H1);
-        let minZone = Math.min(globalEMA34_H1, globalEMA89_H1);
+        let maxZone = Math.max(globalEMA34_H1, globalEMA89_H1); let minZone = Math.min(globalEMA34_H1, globalEMA89_H1);
         let entryPrice = (globalEMA34_H1 + globalEMA89_H1) / 2;
 
         if (!entryPrice || isNaN(entryPrice)) {
-            maxZone = fType === 'long' ? h - (diff * 0.5) : l + (diff * 0.5);
-            minZone = fType === 'long' ? h - (diff * 0.618) : l + (diff * 0.618);
+            maxZone = fType === 'long' ? h - (diff * 0.5) : l + (diff * 0.5); minZone = fType === 'long' ? h - (diff * 0.618) : l + (diff * 0.618);
             entryPrice = (maxZone + minZone) / 2;
         }
 
@@ -612,47 +889,28 @@
 
         let html = `
             <tr style="background: rgba(252, 213, 53, 0.05); border-left: 3px solid var(--accent-yellow);">
-                <td>Entry (Vùng Hỗ trợ EMA H1)</td>
-                <td style="font-weight:bold; color:var(--accent-yellow)">${pFmt(minZone)} - ${pFmt(maxZone)}</td>
-                <td><span class="badge bg-yellow">ĐÓN LÕNG TẠI ĐÂY</span></td>
+                <td>Entry (Vùng Hỗ trợ EMA H1)</td><td style="font-weight:bold; color:var(--accent-yellow)">${pFmt(minZone)} - ${pFmt(maxZone)}</td><td><span class="badge bg-yellow">ĐÓN LÕNG TẠI ĐÂY</span></td>
             </tr>
             <tr style="background: rgba(246, 70, 93, 0.05); border-left: 3px solid var(--accent-red);">
-                <td>Cắt Lỗ (Bảo vệ vốn)</td>
-                <td style="font-weight:bold; color:var(--accent-red)">${pFmt(sl)}</td>
-                <td><span class="badge bg-red">SL DƯỚI ĐÁY GẦN</span></td>
+                <td>Cắt Lỗ (Bảo vệ vốn)</td><td style="font-weight:bold; color:var(--accent-red)">${pFmt(sl)}</td><td><span class="badge bg-red">SL DƯỚI ĐÁY GẦN</span></td>
             </tr>
             <tr style="background: rgba(14, 203, 129, 0.05); border-left: 3px solid var(--accent-green);">
-                <td>Chốt Lời 1 (Fibo 1.618)</td>
-                <td style="font-weight:bold; color:var(--accent-green)">${pFmt(tp1)}</td>
-                <td><span class="badge bg-green">TP 1 AN TOÀN</span></td>
+                <td>Chốt Lời 1 (Fibo 1.618)</td><td style="font-weight:bold; color:var(--accent-green)">${pFmt(tp1)}</td><td><span class="badge bg-green">TP 1 AN TOÀN</span></td>
             </tr>
             <tr style="background: rgba(41, 98, 255, 0.05); border-left: 3px solid var(--accent-blue);">
-                <td>Chốt Lời 2 (Fibo 2.618)</td>
-                <td style="font-weight:bold; color:var(--accent-blue)">${pFmt(tp2)}</td>
-                <td><span class="badge" style="background:var(--accent-blue);color:white">TP 2 MỞ RỘNG</span></td>
+                <td>Chốt Lời 2 (Fibo 2.618)</td><td style="font-weight:bold; color:var(--accent-blue)">${pFmt(tp2)}</td><td><span class="badge" style="background:var(--accent-blue);color:white">TP 2 MỞ RỘNG</span></td>
             </tr>
         `;
         
-        if (globalH4Trend === 'SIDEWAY') {
-            html = `<tr><td colspan="3" style="text-align:center; color: var(--accent-red); font-weight:bold; padding:20px;">THỊ TRƯỜNG ĐANG ĐI NGANG (SIDEWAY). TUYỆT ĐỐI ĐỨNG NGOÀI!</td></tr>`;
-            if(btnTransfer) btnTransfer.style.display = 'none';
-        } else {
-            if(btnTransfer) btnTransfer.style.display = 'block';
-        }
-        
+        if (globalH4Trend === 'SIDEWAY') { html = `<tr><td colspan="3" style="text-align:center; color: var(--accent-red); font-weight:bold; padding:20px;">THỊ TRƯỜNG ĐANG ĐI NGANG (SIDEWAY). TUYỆT ĐỐI ĐỨNG NGOÀI!</td></tr>`; if(btnTransfer) btnTransfer.style.display = 'none'; } 
+        else { if(btnTransfer) btnTransfer.style.display = 'block'; }
         if(body) body.innerHTML = html; 
 
-        let stratClass = "strat-wait";
-        let stratText = "⏳ Xu hướng chuẩn. Kiên nhẫn chờ giá kéo về vùng màu Vàng.";
+        let stratClass = "strat-wait"; let stratText = "⏳ Xu hướng chuẩn. Kiên nhẫn chờ giá kéo về vùng màu Vàng.";
+        if (globalH4Trend === 'SIDEWAY') { stratClass = "strat-danger"; stratText = "❌ ĐANG SIDEWAY (EMA ĐAN XEN). BỎ QUA MÃ NÀY!"; } 
+        else if (globalCurrentPrice <= maxZone * 1.005 && globalCurrentPrice >= minZone * 0.995) { stratClass = "strat-alert"; stratText = "🔥 GIÁ ĐANG TRONG VÙNG ENTRY (EMA)! Soi M15 và check Phân kỳ MACD H4 ngay!"; } 
         
-        if (globalH4Trend === 'SIDEWAY') {
-            stratClass = "strat-danger"; stratText = "❌ ĐANG SIDEWAY (EMA ĐAN XEN). BỎ QUA MÃ NÀY!";
-        } else if (globalCurrentPrice <= maxZone * 1.005 && globalCurrentPrice >= minZone * 0.995) {
-            stratClass = "strat-alert"; stratText = "🔥 GIÁ ĐANG TRONG VÙNG ENTRY (EMA)! Soi M15 và check Phân kỳ MACD H4 ngay!";
-        } 
-        
-        safeSetClass('actionStrategy', stratClass);
-        safeSetHTML('actionStrategy', stratText);
+        safeSetClass('actionStrategy', stratClass); safeSetHTML('actionStrategy', stratText);
     }
 
     function transferToRR() {
@@ -666,12 +924,8 @@
         
         const btn = document.getElementById('btnTransfer');
         if(btn) {
-            btn.innerHTML = "Đã khóa thông số & Chuyển ✓"; 
-            btn.style.backgroundColor = "var(--accent-green)";
-            setTimeout(() => { 
-                btn.innerHTML = "⬇ Khóa Chiến Thuật & Chuyển Sang Bóp Cò ⬇"; 
-                btn.style.backgroundColor = "var(--accent-yellow)"; 
-            }, 1500);
+            btn.innerHTML = "Đã khóa thông số & Chuyển ✓"; btn.style.backgroundColor = "var(--accent-green)";
+            setTimeout(() => { btn.innerHTML = "⬇ Khóa Chiến Thuật & Chuyển Sang Bóp Cò ⬇"; btn.style.backgroundColor = "var(--accent-yellow)"; }, 1500);
         }
 
         const panel2 = document.getElementById('panel2'); 
@@ -680,13 +934,10 @@
             setTimeout(() => { panel2.classList.remove('highlight-active'); }, 1500);
             panel2.scrollIntoView({behavior: 'smooth'});
         }
-        
-        // MỌI Ô INPUT TẠI PANEL 2 LUÔN LUÔN CHỈNH SỬA ĐƯỢC
-        // Tính toán khối lượng để người dùng xem trước R:R
         calculate();
+        showToast("Đã tải dữ liệu xuống máy tính Volume!");
     }
 
-    // --- QUẢN TRỊ RỦI RO DỰA TRÊN % TỔNG VỐN ---
     function updateRiskFromPercent() {
         const capitalEl = document.getElementById('walletCapital');
         const percentEl = document.getElementById('riskPercent');
@@ -698,6 +949,11 @@
         const riskAmount = (capital * percent) / 100;
         safeSetValue('risk', riskAmount.toFixed(2));
         
+        const ddWarning = document.getElementById('drawdownWarning');
+        if(ddWarning) {
+            if(percent >= 10) ddWarning.style.display = 'block';
+            else ddWarning.style.display = 'none';
+        }
         calculate();
     }
 
@@ -712,136 +968,178 @@
         if (capital > 0) {
             const percent = (riskAmount / capital) * 100;
             safeSetValue('riskPercent', percent.toFixed(2));
+            
+            const ddWarning = document.getElementById('drawdownWarning');
+            if(ddWarning) {
+                if(percent >= 10) ddWarning.style.display = 'block';
+                else ddWarning.style.display = 'none';
+            }
         }
+        calculate();
+    }
+
+    function quickSetTP(targetLevel, type) {
+        const eEl = document.getElementById('entry');
+        const sEl = document.getElementById('sl');
+        if(!eEl || !sEl) return;
+        const entry = parseFloat(eEl.value);
+        const sl = parseFloat(sEl.value);
+        
+        if (!entry || !sl || isNaN(entry) || isNaN(sl) || entry === sl) {
+            showToast("Vui lòng nhập/tính Entry và SL hợp lệ trước!", true);
+            return;
+        }
+
+        const slDist = Math.abs(entry - sl);
+        let newTP = 0;
+
+        if (type === 'c') { 
+            const h = parseFloat(document.getElementById('fiboHigh')?.value);
+            const l = parseFloat(document.getElementById('fiboLow')?.value);
+            if (isNaN(h) || isNaN(l)) { showToast("Chưa có dữ liệu Đỉnh/Đáy từ Panel 1.", true); return; }
+            const diff = Math.abs(h - l);
+            const buffer = diff * 0.01;
+            newTP = tradeType === 'long' ? h - buffer : l + buffer;
+            showToast(`Đã lùi 1% vùng kẹt hàng cũ (thoát trước đám đông).`);
+        } 
+        else if (type === 1 || type === 2) { 
+            newTP = tradeType === 'long' ? entry + (slDist * type) : entry - (slDist * type);
+            showToast(`Đã cài TP tỷ lệ R:R 1:${type}`);
+        } 
+        else { 
+            const h = parseFloat(document.getElementById('fiboHigh')?.value);
+            const l = parseFloat(document.getElementById('fiboLow')?.value);
+            if (isNaN(h) || isNaN(l)) { showToast("Chưa có dữ liệu Đỉnh/Đáy từ Panel 1 để tính Fibo Extension.", true); return; }
+            const diff = Math.abs(h - l);
+            newTP = tradeType === 'long' ? l + (diff * type) : h - (diff * type);
+            showToast(`Đã lấy đỉnh đáy tính Fibo Mở rộng ${type}`);
+        }
+
+        if (targetLevel === 1) { safeSetValue('tp1', pFmt(newTP)); } 
+        else { safeSetValue('tp2', pFmt(newTP)); }
         
         calculate();
     }
 
-    // --- CHECKLIST & R:R LOGIC CỐT LÕI (BULLETPROOF) ---
     function validateChecklist() {
-        const chk1 = document.getElementById('chkTrend');
-        const chk2 = document.getElementById('chkSweep');
+        const chk1 = document.getElementById('chkTrend'); 
+        const chk2 = document.getElementById('chkSweep'); 
         const chk3 = document.getElementById('chkMACD');
         
         let ok = false;
-        if(chk1 && chk2 && chk3) {
-            ok = chk1.checked && chk2.checked && chk3.checked;
-        }
+        if(chk1 && chk2 && chk3) ok = chk1.checked && chk2.checked && chk3.checked;
 
         const warning = document.getElementById('checkWarning');
-        if(warning) warning.style.display = ok ? 'none' : 'block';
+        if(warning) warning.style.display = (ok && !isSystemLocked) ? 'none' : 'block';
         
-        // KIỂM SOÁT NÚT BÓP CÒ BẰNG KỶ LUẬT
         const btnExecute = document.getElementById('btnExecuteTrade');
         if(btnExecute) {
-            btnExecute.disabled = !ok;
-            if(ok) {
-                btnExecute.innerHTML = "🚀 BÓP CÒ (PHÓNG LỆNH ENTRY)";
-                btnExecute.style.backgroundColor = "var(--accent-yellow)";
-                btnExecute.style.color = "#000";
+            btnExecute.disabled = (!ok || isSystemLocked);
+            if(ok && !isSystemLocked) {
+                btnExecute.innerHTML = "🚀 BÓP CÒ (PHÓNG LỆNH ENTRY)"; 
+                btnExecute.style.backgroundColor = "var(--accent-yellow)"; 
+                btnExecute.style.color = "#000"; 
                 btnExecute.style.boxShadow = "0 4px 15px rgba(243, 186, 47, 0.3)";
             } else {
-                btnExecute.innerHTML = "🔒 NÚT ĐẶT LỆNH ĐANG BỊ KHÓA";
-                btnExecute.style.backgroundColor = "var(--bg-card)";
-                btnExecute.style.color = "var(--text-muted)";
+                btnExecute.innerHTML = "🔒 NÚT ĐẶT LỆNH ĐANG BỊ KHÓA"; 
+                btnExecute.style.backgroundColor = "var(--bg-card)"; 
+                btnExecute.style.color = "var(--text-muted)"; 
                 btnExecute.style.boxShadow = "none";
             }
         }
-
-        calculate();
     }
 
-    let tradeType = 'long';
     function setTradeType(type) { 
         tradeType = type; 
-        const btnL = document.getElementById('btnLong');
+        const btnL = document.getElementById('btnLong'); 
         const btnS = document.getElementById('btnShort');
         if(btnL) btnL.classList.toggle('active', type==='long'); 
         if(btnS) btnS.classList.toggle('active', type==='short'); 
-        
         calculate(); 
     }
 
     function resetResults() {
-        safeSetText('posSize', "0.00");
-        safeSetText('rrRatio', "1 : 0.00");
-        safeSetText('profit1', "+0.00 USDT");
-        safeSetText('profit2', "+0.00 USDT");
-        safeSetText('netProfit', "+0.00 USDT");
-        safeSetClass('netProfit', "res-val text-green");
-        safeSetText('maxLoss', "-0.00 USDT");
-        safeSetText('totalFee', "-0.00 USDT");
-        safeSetText('remindSL', "0.00");
-        safeSetText('remindTP1', "0.00");
-        safeSetText('remindTP2', "0.00");
+        safeSetText('posSize', "0.00"); safeSetText('rrRatio', "1 : 0.00");
+        safeSetText('profit1', "+0.00 USDT"); safeSetText('profit2', "+0.00 USDT");
+        safeSetText('netProfit', "+0.00 USDT"); safeSetClass('netProfit', "res-val text-green");
+        safeSetText('maxLoss', "-0.00 USDT"); safeSetText('slDistancePercent', "0.00%");
+        safeSetText('notionalValue', "0.00 USDT"); safeSetText('totalFee', "-0.00 USDT");
+        safeSetText('breakevenPrice', "0.00"); safeSetText('priceAt1R', "0.00");
+        safeSetText('remindSL', "0.00"); safeSetText('remindTP1', "0.00"); safeSetText('remindTP2', "0.00");
+        safeSetText('displaySLFinal', "-"); safeSetText('displayTP1Final', "-");
     }
 
     function calculate() {
-        const rEl = document.getElementById('risk');
-        const eEl = document.getElementById('entry');
-        const slEl = document.getElementById('sl');
-        const tp1El = document.getElementById('tp1');
-        const tp2El = document.getElementById('tp2');
+        const rEl = document.getElementById('risk'); const eEl = document.getElementById('entry'); const slEl = document.getElementById('sl');
+        const tp1El = document.getElementById('tp1'); const tp2El = document.getElementById('tp2');
 
         if(!rEl || !eEl || !slEl) { resetResults(); return; }
 
-        let r = parseFloat(rEl.value); 
-        let e = parseFloat(eEl.value); 
-        let sl = parseFloat(slEl.value); 
-        let tp1 = tp1El ? parseFloat(tp1El.value) : NaN; 
-        let tp2 = tp2El ? parseFloat(tp2El.value) : NaN;
+        let r = parseFloat(rEl.value); let e = parseFloat(eEl.value); let sl = parseFloat(slEl.value); 
+        let tp1 = tp1El && tp1El.value !== '' ? parseFloat(tp1El.value) : NaN; 
+        let tp2 = tp2El && tp2El.value !== '' ? parseFloat(tp2El.value) : NaN;
         
         let feeRate = 0.0007; 
         
         if(!e || !sl || e===sl || !r) { resetResults(); return; }
-        
-        if((tradeType === 'long' && sl >= e) || (tradeType === 'short' && sl <= e)) { 
-            resetResults();
-            safeSetText('rrRatio', "LỖI: SL sai hướng!");
-            return; 
-        }
+        if((tradeType === 'long' && sl >= e) || (tradeType === 'short' && sl <= e)) { resetResults(); safeSetText('rrRatio', "LỖI: SL sai hướng!"); return; }
 
         let slD = Math.abs(e - sl); 
+        let slPercent = (slD / e) * 100;
         let sz = r / slD; 
-        let fee = (sz * e) * feeRate;
+        
+        let notionalValue = sz * e;
+        let fee = notionalValue * feeRate;
+        let priceToCoverFee = fee / sz;
+        let breakevenPrice = tradeType === 'long' ? e + priceToCoverFee : e - priceToCoverFee;
 
         safeSetText('posSize', sz.toFixed(4));
+        safeSetText('notionalValue', notionalValue.toFixed(2) + " USDT");
+        safeSetText('totalFee', "-" + pFmt(fee) + " USDT");
+        safeSetText('breakevenPrice', pFmt(breakevenPrice));
         
+        let slPctStr = slPercent.toFixed(2) + "%";
+        if(slPercent > 10) slPctStr += " (Cảnh báo SL quá xa!)";
+        safeSetText('slDistancePercent', slPctStr);
+        
+        let price1R = tradeType === 'long' ? e + slD : e - slD;
+        safeSetText('priceAt1R', pFmt(price1R));
+
         let net1 = 0, net2 = 0;
+        let totalNet = 0;
+        let validTP = 0;
+
         if(!isNaN(tp1)) { 
             let tpD1 = Math.abs(tp1 - e); net1 = (sz * 0.5 * tpD1) - (fee / 2); 
-            safeSetText('profit1', (net1 > 0 ? "+" : "") + pFmt(net1) + " USDT");
-        }
+            safeSetText('profit1', (net1 > 0 ? "+" : "") + pFmt(net1) + " USDT"); 
+            totalNet += net1; validTP++;
+        } else { safeSetText('profit1', "+0.00 USDT"); }
+        
         if(!isNaN(tp2)) { 
             let tpD2 = Math.abs(tp2 - e); net2 = (sz * 0.5 * tpD2) - (fee / 2); 
-            safeSetText('profit2', (net2 > 0 ? "+" : "") + pFmt(net2) + " USDT");
-        }
+            safeSetText('profit2', (net2 > 0 ? "+" : "") + pFmt(net2) + " USDT"); 
+            totalNet += net2; validTP++;
+        } else { safeSetText('profit2', "+0.00 USDT"); }
         
-        let totalNet = net1 + net2;
-        if(!isNaN(tp1) && !isNaN(tp2)) {
+        if(validTP > 0) {
             safeSetText('rrRatio', "1 : " + (totalNet / r).toFixed(2));
             safeSetText('netProfit', (totalNet > 0 ? "+" : "") + pFmt(totalNet) + " USDT");
             safeSetClass('netProfit', totalNet > 0 ? 'res-val text-green' : 'res-val text-red');
-            
-            let maxLoss = r + (fee * 2); 
-            safeSetText('maxLoss', "-" + pFmt(maxLoss) + " USDT");
-            safeSetText('totalFee', "-" + pFmt(fee) + " USDT");
+        } else {
+            safeSetText('rrRatio', "1 : 0.00");
+            safeSetText('netProfit', "+0.00 USDT");
+            safeSetClass('netProfit', "res-val text-green");
         }
+
+        let maxLoss = r + (fee * 2); 
+        safeSetText('maxLoss', "-" + pFmt(maxLoss) + " USDT");
         
-        safeSetText('remindSL', pFmt(sl));
-        safeSetText('remindTP1', pFmt(tp1));
-        safeSetText('remindTP2', pFmt(tp2));
+        safeSetText('remindSL', pFmt(sl)); safeSetText('remindTP1', isNaN(tp1) ? "..." : pFmt(tp1)); safeSetText('remindTP2', isNaN(tp2) ? "..." : pFmt(tp2));
+        safeSetText('displaySLFinal', pFmt(sl)); safeSetText('displayTP1Final', isNaN(tp1) ? "..." : pFmt(tp1));
     }
 
-    function logToConsole(m, isError=false) { 
-        const c = document.getElementById('tradeConsole'); 
-        if(c) {
-            c.innerHTML += `<br><span style="color: ${isError?'#F6465D':'#0ECB81'}">> ${m}</span>`; 
-            c.scrollTop = c.scrollHeight; 
-        }
-    }
+    function logToConsole(m, isError=false) { const c = document.getElementById('tradeConsole'); if(c) { c.innerHTML += `<br><span style="color: ${isError?'#F6465D':'#0ECB81'}">> ${m}</span>`; c.scrollTop = c.scrollHeight; } }
 
-    // --- RADAR LOGIC ---
     async function scanRadar(isExpand = false) {
         const btn = document.getElementById('btnRadar'); const grid = document.getElementById('radarGrid'); const exp = document.getElementById('btnExpandRadar');
         if(!btn || !grid) return;
@@ -851,20 +1149,22 @@
         if(exp) exp.style.display = 'none';
         try {
             if (allFuturesPairs.length === 0) {
-                const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr'); const data = await res.json();
+                const tickerResponse = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr'); 
+                const data = await tickerResponse.json();
                 allFuturesPairs = data.filter(i => i.symbol.endsWith('USDT') && !i.symbol.includes('_')).sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume)).map(i => i.symbol);
             }
-            const start = isExpand ? currentScanLimit - 30 : 0; const symbols = allFuturesPairs.slice(start, currentScanLimit);
-            let res = [];
+            const start = isExpand ? currentScanLimit - 30 : 0; 
+            const symbols = allFuturesPairs.slice(start, currentScanLimit);
+            let scanResults = [];
             for (let i = 0; i < symbols.length; i += 10) {
                 const chunk = symbols.slice(i, i + 10);
-                res = res.concat(await Promise.all(chunk.map(async (symbol) => {
+                scanResults = scanResults.concat(await Promise.all(chunk.map(async (symbol) => {
                     try {
                         const h4K = await getKlinesData(symbol, '4h', 100);
-                        const h1K = await getKlinesData(symbol, '1h', 50);
+                        const h1K = await getKlinesData(symbol, '1h', 100);
                         if (!h4K || h4K.length < 89) return null;
                         const h4Closes = h4K.map(k => parseFloat(k[4]));
-                        const ema34 = calculateEMA(h4Closes, 34);
+                        const ema34 = calculateEMA(h4Closes, 34); 
                         const ema89 = calculateEMA(h4Closes, 89);
                         const p = parseFloat(h1K[h1K.length - 1][4]);
                         
@@ -876,7 +1176,7 @@
                         if (h4T !== 'SIDEWAY') {
                             const h1Closes = h1K.map(k => parseFloat(k[4]));
                             const ema34_h1 = calculateEMA(h1Closes, 34) || 0;
-                            const ema89_h1 = calculateEMA(h1Closes, Math.min(89, h1Closes.length)) || 0;
+                            const ema89_h1 = calculateEMA(h1Closes, 89) || 0; 
                             let maxZ = Math.max(ema34_h1, ema89_h1); let miZ = Math.min(ema34_h1, ema89_h1); 
                             let buf = (maxZ - miZ) * 0.2;
                             inZone = (p <= maxZ + buf) && (p >= miZ - buf);
@@ -886,48 +1186,42 @@
                     } catch(e) { return null; }
                 })));
             }
-            res.sort((a, b) => (b?b.prio:0) - (a?a.prio:0));
+            scanResults.sort((a, b) => (b?b.prio:0) - (a?a.prio:0));
             if (!isExpand) grid.innerHTML = '';
-            res.forEach(d => {
+            scanResults.forEach(d => {
                 if(!d) return; 
                 let sCls = '', sTxt = '', cCls = 'radar-item', bTxt='';
                 if (d.h4T === 'LONG') { sCls = 'status-long'; sTxt = 'TĂNG (UPTREND)'; bTxt = `<span class="badge" style="background:var(--accent-green)">Giá > EMA</span>`; if (d.inZone) { cCls += ' in-zone'; sTxt = '🔥 ĐANG HỒI VỀ EMA'; } } 
                 else if (d.h4T === 'SHORT') { sCls = 'status-short'; sTxt = 'GIẢM (DOWNTREND)'; bTxt = `<span class="badge" style="background:var(--accent-red)">Giá < EMA</span>`; if (d.inZone) { cCls += ' in-zone'; sTxt = '🔥 ĐANG HỒI VỀ EMA'; } } 
                 else { sCls = 'status-mixed'; sTxt = 'ĐI NGANG (SIDEWAY)'; bTxt = `<span class="badge" style="background:var(--text-muted)">BỎ QUA</span>`; }
                 let dp = pFmt(d.price);
-                grid.innerHTML += `<div class="${cCls}" onclick="loadToMainScanner('${d.symbol}')"><div class="radar-header"><span style="color: white;">${d.symbol.replace('USDT','')}</span>${bTxt}</div><div style="font-size:18px; font-weight:bold;">${dp}</div><div class="radar-status ${sCls}">${sTxt}</div></div>`;
+                grid.innerHTML += `<div class="${cCls}" onclick="loadToMainScanner('${d.symbol}')"><div class="radar-header"><span style="color: white;">${d.symbol.replace('USDT','')} <span style="font-size:10px; color:var(--text-muted)">USDT</span></span>${bTxt}</div><div style="font-size:18px; font-weight:bold;">${dp}</div><div class="radar-status ${sCls}">${sTxt}</div></div>`;
             });
             if(currentScanLimit < allFuturesPairs.length && exp) exp.style.display = 'inline-block';
         } catch (e) { grid.innerHTML = `<div style="grid-column: 1/-1; color: var(--accent-red); text-align: center;">Lỗi mạng. Thử lại sau.</div>`; } 
         finally { btn.innerHTML = `📡 Khởi Động Radar (Top 30)`; btn.disabled = false; }
     }
 
+    function expandRadar() { scanRadar(true); }
+
     function loadToMainScanner(sym) { 
         safeSetValue('symbolInput', sym);
         syncSymbol();
         const symInp = document.getElementById('symbolInput');
-        if(symInp) symInp.scrollIntoView({ behavior: 'smooth' }); 
+        if(symInp) symInp.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
         setTimeout(scanMultiTimeframe, 500); 
     }
 
-    // --- BỆ PHÓNG CHỈ ENTRY ---
     async function placeBinanceOrder() {
-        const apiKeyEl = document.getElementById('apiKey');
-        const apiSecretEl = document.getElementById('apiSecret');
-        const symbolEl = document.getElementById('symbolInput');
-        const sizeEl = document.getElementById('posSize');
-        const entryEl = document.getElementById('entry');
+        const apiKeyEl = document.getElementById('apiKey'); const apiSecretEl = document.getElementById('apiSecret');
+        const symbolEl = document.getElementById('symbolInput'); const sizeEl = document.getElementById('posSize'); const entryEl = document.getElementById('entry');
 
         if(!apiKeyEl || !apiSecretEl || !symbolEl || !sizeEl || !entryEl) return;
 
-        const binanceApiKey = apiKeyEl.value; 
-        const apiSecret = apiSecretEl.value;
-        if (!binanceApiKey || !apiSecret) { alert("Thiếu API Key!"); return; }
+        const binanceApiKey = apiKeyEl.value; const apiSecret = apiSecretEl.value;
+        if (!binanceApiKey || !apiSecret) { showToast("Vui lòng nhập API Key để đặt lệnh!", true); return; }
         
-        const symbol = symbolEl.value.trim().toUpperCase(); 
-        const sizeStr = sizeEl.innerText; 
-        const entryStr = entryEl.value;
-
+        const symbol = symbolEl.value.trim().toUpperCase(); const sizeStr = sizeEl.innerText; const entryStr = entryEl.value;
         if (sizeStr === "0.00" || !entryStr) return;
 
         const btnExecute = document.getElementById('btnExecuteTrade'); 
@@ -971,22 +1265,18 @@
             if (res.ok) {
                 logToConsole(`✅ Khớp ENTRY (${apiOrderType}) - ID: ${data.orderId}`);
                 if(manualReminder) manualReminder.style.display = 'block';
+                showToast("Lệnh ENTRY đã đẩy lên sàn thành công!");
             } else logToConsole(`❌ Từ chối ENTRY: ${data.msg}`, true);
-        } catch (e) { logToConsole(`❌ LỖI HỆ THỐNG: ${e.message}`, true); } 
-        finally { 
-            if(btnExecute) { btnExecute.disabled = false; btnExecute.innerHTML = "🚀 BÓP CÒ (PHÓNG LỆNH ENTRY)"; }
-        }
+        } catch (e) { logToConsole(`❌ LỖI HỆ THỐNG: ${e.message}`, true); showToast("Có lỗi xảy ra khi đẩy lệnh", true); } 
+        finally { if(btnExecute) { btnExecute.disabled = false; btnExecute.innerHTML = "🚀 BÓP CÒ (PHÓNG LỆNH ENTRY)"; } }
     }
 
-    // ĐỒNG BỘ SỐ DƯ TỪ BINANCE THẲNG VÀO QUẢN TRỊ RỦI RO
     async function syncBinanceAccount() {
-        const apiKeyEl = document.getElementById('apiKey');
-        const apiSecretEl = document.getElementById('apiSecret');
+        const apiKeyEl = document.getElementById('apiKey'); const apiSecretEl = document.getElementById('apiSecret');
         if(!apiKeyEl || !apiSecretEl) return;
 
-        const binanceApiKey = apiKeyEl.value.trim(); 
-        const apiSecret = apiSecretEl.value.trim();
-        if (!binanceApiKey || !apiSecret) { alert("Vui lòng điền API Key ở Panel 3!"); return; }
+        const binanceApiKey = apiKeyEl.value.trim(); const apiSecret = apiSecretEl.value.trim();
+        if (!binanceApiKey || !apiSecret) { showToast("Vui lòng điền API Key ở Panel 3!", true); return; }
         
         const btn = document.getElementById('btnSyncAcc'); 
         if(btn) { btn.innerHTML = "Đang đồng bộ..."; btn.disabled = true; }
@@ -1001,15 +1291,10 @@
                 if (usdt) {
                     let balance = parseFloat(usdt.availableBalance);
                     safeSetHTML('walletBalance', `${balance.toFixed(2)} <span style="font-size:16px; color:white;">USDT</span>`);
-                    
                     safeSetValue('walletCapital', balance.toFixed(2));
                     updateRiskFromPercent();
-                    
                     const p2 = document.getElementById('panel2');
-                    if(p2) {
-                        p2.classList.add('highlight-active');
-                        setTimeout(() => p2.classList.remove('highlight-active'), 1500);
-                    }
+                    if(p2) { p2.classList.add('highlight-active'); setTimeout(() => p2.classList.remove('highlight-active'), 1500); }
                 }
                 const opens = data.positions.filter(p => parseFloat(p.positionAmt) !== 0);
                 const tbody = document.getElementById('positionsBody'); 
@@ -1024,12 +1309,12 @@
                         });
                     }
                 }
+                showToast("Đồng bộ số dư ví và vị thế thành công!");
             } else throw new Error(data.msg);
-        } catch (e) { safeSetHTML('positionsBody', `<tr><td colspan="5" class="text-red">Lỗi: ${e.message}</td></tr>`); } 
+        } catch (e) { safeSetHTML('positionsBody', `<tr><td colspan="5" class="text-red">Lỗi: ${e.message}</td></tr>`); showToast("Lỗi đồng bộ ví", true); } 
         finally { if(btn) { btn.innerHTML = "🔄 Đồng Bộ Ví"; btn.disabled = false; } }
     }
 
-    // --- WATCHLIST & NHẬT KÝ WEBHOOK ---
     function addWatchlist() {
         const inp = document.getElementById('watchInput'); 
         if(!inp) return;
@@ -1045,41 +1330,25 @@
         watchlistArr.forEach(s => tb.innerHTML += `<tr><td style="font-weight:bold; color:var(--accent-yellow); cursor:pointer;" onclick="loadToMainScanner('${s}')">${s}</td><td><button class="action-btn" style="width:auto; padding:5px 10px; margin:0;" onclick="removeWatchlist('${s}')">Xóa</button></td></tr>`);
     }
 
-    // --- ĐÃ HỒI SINH TÍNH NĂNG AI PHÂN TÍCH WATCHLIST ---
     async function analyzeWatchlist() {
-        if(watchlistArr.length === 0) { alert("Danh sách đang trống, hãy thêm mã coin vào trước!"); return; }
-        const btn = document.getElementById('btnSoiList');
-        const wlPanel = document.getElementById('watchlistAIPanel');
-        
+        if(watchlistArr.length === 0) { showToast("Danh sách đang trống, hãy thêm mã coin vào trước!", true); return; }
+        const btn = document.getElementById('btnSoiList'); const wlPanel = document.getElementById('watchlistAIPanel');
         if(btn) { btn.disabled = true; btn.innerHTML = '...'; }
-        if(wlPanel) {
-            wlPanel.style.display = 'block';
-            wlPanel.innerHTML = '<span class="loader"></span> Bác Jét đang lườm danh sách của bạn...';
-        }
+        if(wlPanel) { wlPanel.style.display = 'block'; wlPanel.innerHTML = '<span class="loader"></span> Bác Jét đang lườm danh sách của bạn...'; }
 
         const listString = watchlistArr.join(", ");
-        const payload = {
-            contents: [{ parts: [{ text: `Danh sách theo dõi của tôi có các mã sau: ${listString}. Đánh giá thật ngắn gọn (1 dòng) dòng tiền hoặc mức độ rủi ro chung của các mã này.` }] }],
-            systemInstruction: { parts: [{ text: "Bạn là Bác Jét. Đánh giá sắc bén, ngắn gọn, thẳng thắn." }] }
-        };
+        const payload = { contents: [{ parts: [{ text: `Danh sách theo dõi của tôi có các mã sau: ${listString}. Đánh giá thật ngắn gọn (1 dòng) dòng tiền hoặc mức độ rủi ro chung của các mã này.` }] }], systemInstruction: { parts: [{ text: "Bạn là Bác Jét. Đánh giá sắc bén, ngắn gọn, thẳng thắn." }] } };
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
         try {
             const data = await fetchWithRetry(url, payload);
             const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if(text) {
-                if(wlPanel) wlPanel.innerHTML = `<strong style="color:var(--accent-yellow);">Bác Jét phán:</strong> ${text}`;
-            } else {
-                if(wlPanel) wlPanel.innerHTML = 'Lỗi định dạng phản hồi.';
-            }
-        } catch(e) { 
-            if(wlPanel) wlPanel.innerHTML = 'Lỗi kết nối AI. Mạng nghẽn.'; 
-        } finally { 
-            if(btn) { btn.innerHTML = '✨ AI Phân Tích DS'; btn.disabled = false; } 
-        }
+            if(text) { if(wlPanel) wlPanel.innerHTML = `<strong style="color:var(--accent-yellow);">Bác Jét phán:</strong> ${text}`; } 
+            else { if(wlPanel) wlPanel.innerHTML = 'Lỗi định dạng phản hồi.'; }
+        } catch(e) { if(wlPanel) wlPanel.innerHTML = 'Lỗi kết nối AI. Mạng nghẽn.'; } 
+        finally { if(btn) { btn.innerHTML = '✨ AI Phân Tích DS'; btn.disabled = false; } }
     }
 
-    // --- GEMINI LLM API CỐ VẤN BÁC JÉT ---
     async function fetchWithRetry(url, payload) {
         const delays = [1000, 2000, 4000, 8000, 16000];
         for (let i = 0; i <= 5; i++) {
@@ -1097,27 +1366,33 @@
         const entry = document.getElementById('entry')?.value;
         const sl = document.getElementById('sl')?.value;
         const tp1 = document.getElementById('tp1')?.value;
+        const tp2 = document.getElementById('tp2')?.value;
         
         const chkTrend = document.getElementById('chkTrend')?.checked;
         const chkSweep = document.getElementById('chkSweep')?.checked;
         const chkMACD = document.getElementById('chkMACD')?.checked;
 
-        if (!entry) { alert("Hãy Quét Dữ Liệu và chuyển sang Bóp Cò trước!"); return; }
+        if (!entry || document.getElementById('posSize').innerText === "0.00") { 
+            showToast("Hãy Quét Đa Tầng và điền Thông số kỹ thuật (Entry) trước khi gọi AI.", true); return; 
+        }
 
         const aiBtn = document.getElementById('btnAI'); const aiBox = document.getElementById('aiResponseBox'); const aiContent = document.getElementById('aiContent');
         if(aiBtn) { aiBtn.innerHTML = '<span class="loader"></span> Đang soi lệnh...'; aiBtn.disabled = true; }
         if(aiBox) aiBox.style.display = 'block';
-        if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang đối chiếu giao cắt EMA và Phân kỳ MACD...</span>';
+        if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang đối chiếu với Nguyên tắc Chốt Lời và Scale-out...</span>';
 
         const rrText = document.getElementById('rrRatio')?.innerText || '';
+        const riskVal = document.getElementById('risk')?.value || '';
+        const slDist = document.getElementById('slDistancePercent')?.innerText || '';
 
         const promptText = `Bối cảnh: H4 đang là ${globalH4State}.
-Lệnh của tôi: ${tradeType.toUpperCase()} con ${asset}. Entry: ${entry}, SL: ${sl}, TP1: ${tp1}. Tỷ lệ R:R: ${rrText}.
-Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Chưa'}, MACD/RSI H4 không phân kỳ: ${chkMACD?'Ok':'Chưa'}.
+Lệnh của tôi: ${tradeType.toUpperCase()} con ${asset}. Entry: ${entry}, SL: ${sl}, TP1: ${tp1}, TP2: ${tp2}. Tỷ lệ R:R: ${rrText}.
+Rủi ro: ${riskVal} USDT. Khoảng cách SL: ${slDist}.
+Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Chưa'}, MACD H4 không phân kỳ: ${chkMACD?'Ok':'Chưa'}.
 
-Đóng vai Bác Jét. Đánh giá lệnh này theo chuẩn Trend Following (EMA 34/89). Nếu đánh ngược xu hướng hoặc RSI phân kỳ mà vẫn cố vào lệnh thì chửi gắt vào. Chốt 1 câu triết lý quản trị vốn.`;
+Đóng vai Bác Jét. Đánh giá lệnh này theo chuẩn Trend Following, Scale-out 50/50 và Quản trị vốn 2% của Elder. Nếu SL quá xa hoặc đánh ngược xu hướng mà vẫn cố vào lệnh thì chửi gắt vào. Chốt 1 câu triết lý quản trị vốn.`;
 
-        const payload = { contents: [{ parts: [{ text: promptText }] }], systemInstruction: { parts: [{ text: "Nghiêm khắc, lạnh lùng, am hiểu phương pháp Sonic R / EMA 34/89." }] } };
+        const payload = { contents: [{ parts: [{ text: promptText }] }], systemInstruction: { parts: [{ text: "Nghiêm khắc, lạnh lùng, am hiểu phương pháp Sonic R / EMA 34/89 và Quản trị vốn." }] } };
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
         try {
@@ -1140,7 +1415,7 @@ Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Ch�
         if(aiBox) aiBox.style.display = 'block';
         if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang lục lọi bí kíp...</span>';
         
-        const payload = { contents: [{ parts: [{ text: "Trích xuất 1 lời khuyên thực chiến sắc bén nhất về Quản trị vốn 2% hoặc Lý thuyết Trend từ 'Jét Si Chân Kinh' để tẩy não tôi." }] }], systemInstruction: { parts: [{ text: "Ngắn gọn, 2 câu. Thấm thía." }] } };
+        const payload = { contents: [{ parts: [{ text: "Trích xuất 1 lời khuyên thực chiến sắc bén nhất về Quản trị vốn 2% hoặc Tâm lý chốt lời từ 'Jét Si Chân Kinh' để tẩy não tôi." }] }], systemInstruction: { parts: [{ text: "Ngắn gọn, 2 câu. Thấm thía." }] } };
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         try {
             const data = await fetchWithRetry(url, payload);
@@ -1156,7 +1431,7 @@ Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Ch�
     async function diagnosePsychology() {
         const inpEl = document.getElementById('psychoInput');
         if(!inpEl) return;
-        const inp = inpEl.value.trim(); if(!inp) return;
+        const inp = inpEl.value.trim(); if(!inp) { showToast("Gõ nỗi đau của bạn vào ô trống đi!", true); return; }
         
         const btn = document.getElementById('btnPsycho'); const aiBox = document.getElementById('aiResponseBox'); const aiContent = document.getElementById('aiContent');
         if(btn) { btn.disabled = true; btn.innerHTML = '🚑 Đang khám...'; }
@@ -1191,8 +1466,7 @@ Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Ch�
 
     async function speakAIResponse() {
         if(!lastAIResponseText) return; const btn = document.getElementById('btnTTS'); 
-        if(!btn) return;
-        const origin = btn.innerHTML;
+        if(!btn) return; const origin = btn.innerHTML;
         btn.innerHTML = '<span class="loader"></span> Đang nạp giọng...'; btn.disabled = true;
         const payload = { contents: [{ parts: [{ text: `Đọc với giọng điệu nghiêm khắc: ${lastAIResponseText.replace(/\*/g, '')}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, model: "gemini-2.5-flash-preview-tts" };
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
