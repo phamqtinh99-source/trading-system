@@ -632,7 +632,7 @@
     window.isSystemLocked = false;
     window.tradeType = 'long'; 
     window.radarMode = 'crypto';
-    const geminiApiKey = "";
+    const apiKey = "";
 
     // --- KHỞI TẠO BỌC LỖI LOCAL STORAGE ---
     window.onload = function() {
@@ -1472,25 +1472,34 @@
 
         const listString = window.watchlistArr.join(", ");
         const payload = { contents: [{ parts: [{ text: `Danh sách theo dõi của tôi có các mã sau: ${listString}. Đánh giá thật ngắn gọn (1 dòng) xu hướng dòng tiền của các mã này dựa trên phương pháp EMA 200.` }] }], systemInstruction: { parts: [{ text: "Bạn là chuyên gia phân tích kỹ thuật. Đánh giá sắc bén, ngắn gọn, thẳng thắn." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
         try {
             const data = await window.fetchWithRetry(url, payload);
             const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             if(text) { if(wlPanel) wlPanel.innerHTML = `<strong style="color:var(--accent-yellow);">AI Phán:</strong> ${text}`; } 
             else { if(wlPanel) wlPanel.innerHTML = 'Lỗi định dạng phản hồi.'; }
-        } catch(e) { if(wlPanel) wlPanel.innerHTML = 'Lỗi kết nối AI. Mạng nghẽn.'; } 
+        } catch(e) { if(wlPanel) wlPanel.innerHTML = `Lỗi kết nối AI: ${e.message}`; } 
         finally { if(btn) { btn.innerHTML = '✨ AI Phân Tích DS'; btn.disabled = false; } }
     }
 
+    // --- GEMINI LLM API CỐ VẤN BÁC JÉT ---
     window.fetchWithRetry = async function(url, payload) {
         const delays = [1000, 2000, 4000, 8000, 16000];
         for (let i = 0; i <= 5; i++) {
             try {
                 let res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (res.ok) return await res.json();
-                if (i === 5) throw new Error();
-            } catch(e) { if(i===5) throw e; }
+                
+                const errText = await res.text();
+                console.error("API Error: ", res.status, errText);
+                if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+                    throw new Error(`API từ chối (${res.status})`);
+                }
+                if (i === 5) throw new Error("Quá số lần kết nối.");
+            } catch(e) { 
+                if(i===5 || (e.message && e.message.includes("từ chối"))) throw e; 
+            }
             await new Promise(r => setTimeout(r, delays[i]));
         }
     }
@@ -1527,7 +1536,7 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
 Đóng vai chuyên gia giao dịch. Đánh giá lệnh này theo chuẩn phương pháp Thuận Trend EMA 200 và Fibonacci, kết hợp Scale-out 50/50 và Quản trị vốn 2% của Alexander Elder. Nếu đánh ngược xu hướng mà vẫn cố vào lệnh thì chửi gắt vào. Chốt 1 câu triết lý quản trị vốn.`;
 
         const payload = { contents: [{ parts: [{ text: promptText }] }], systemInstruction: { parts: [{ text: "Nghiêm khắc, lạnh lùng, am hiểu phương pháp Thuận Trend EMA 200 và Fibonacci." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
         try {
             const data = await window.fetchWithRetry(url, payload);
@@ -1536,9 +1545,9 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
                 if(aiContent) aiContent.innerHTML = window.lastAIResponseText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-yellow);">$1</strong>').replace(/\n/g, '<br>');
                 const ttsBtn = document.getElementById('btnTTS');
                 if(ttsBtn) ttsBtn.style.display = 'inline-block';
-            } else throw new Error();
+            } else throw new Error("Phản hồi lỗi");
         } catch (e) { 
-            if(aiContent) aiContent.innerHTML = '<span style="color: var(--accent-red);">Mạng AI đang nghẽn!</span>'; 
+            if(aiContent) aiContent.innerHTML = `<span style="color: var(--accent-red);">Lỗi kết nối AI: ${e.message}</span>`; 
         } 
         finally { if(aiBtn) { aiBtn.innerHTML = '✨ Phân Tích Lệnh'; aiBtn.disabled = false; } }
     }
@@ -1550,7 +1559,7 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
         if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang lục lọi bí kíp...</span>';
         
         const payload = { contents: [{ parts: [{ text: "Trích xuất 1 lời khuyên thực chiến sắc bén nhất về Quản trị vốn 2% hoặc Tâm lý theo trend EMA200 để tẩy não tôi." }] }], systemInstruction: { parts: [{ text: "Ngắn gọn, 2 câu. Thấm thía." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         try {
             const data = await window.fetchWithRetry(url, payload);
             if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -1559,7 +1568,9 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
                 const ttsBtn = document.getElementById('btnTTS');
                 if(ttsBtn) ttsBtn.style.display = 'inline-block';
             }
-        } catch(e) {} finally { if(btn) { btn.innerHTML = '✨ Đọc Châm Ngôn'; btn.disabled = false; } }
+        } catch(e) {
+            if(aiContent) aiContent.innerHTML = `<span style="color: var(--accent-red);">Lỗi kết nối AI: ${e.message}</span>`;
+        } finally { if(btn) { btn.innerHTML = '✨ Đọc Châm Ngôn'; btn.disabled = false; } }
     }
 
     window.diagnosePsychology = async function() {
@@ -1573,7 +1584,7 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
         if(aiContent) aiContent.innerHTML = '<span style="color: var(--accent-red);">🚑 Đang chẩn bệnh...</span>';
         
         const payload = { contents: [{ parts: [{ text: `Tâm lý hiện tại: "${inp}". Khám bệnh và chửi thẳng mặt để tôi tỉnh ngộ.` }] }], systemInstruction: { parts: [{ text: "Chuyên gia tâm lý giao dịch, nghiêm khắc, đánh vào tâm lý đám đông." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         try {
             const data = await window.fetchWithRetry(url, payload);
             if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -1582,7 +1593,9 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
                 const ttsBtn = document.getElementById('btnTTS');
                 if(ttsBtn) ttsBtn.style.display = 'inline-block';
             }
-        } catch(e) {} finally { if(btn) { btn.innerHTML = '🚑 Khám Bệnh'; btn.disabled = false; } }
+        } catch(e) {
+            if(aiContent) aiContent.innerHTML = `<span style="color: var(--accent-red);">Lỗi kết nối AI: ${e.message}</span>`;
+        } finally { if(btn) { btn.innerHTML = '🚑 Khám Bệnh'; btn.disabled = false; } }
     }
 
     window.playPCM16Wav = function(base64Data, sampleRate) {
@@ -1603,7 +1616,7 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
         if(!btn) return; const origin = btn.innerHTML;
         btn.innerHTML = '<span class="loader"></span> Đang nạp giọng...'; btn.disabled = true;
         const payload = { contents: [{ parts: [{ text: `Đọc với giọng điệu nghiêm khắc: ${window.lastAIResponseText.replace(/\*/g, '')}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, model: "gemini-2.5-flash-preview-tts" };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${geminiApiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
         try {
             const data = await window.fetchWithRetry(url, payload);
             const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
@@ -1611,7 +1624,9 @@ Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng 
                 let sr = 24000; const rm = inlineData.mimeType.match(/rate=(\d+)/); if (rm) sr = parseInt(rm[1], 10);
                 window.playPCM16Wav(inlineData.data, sr);
             }
-        } catch(e) {} finally { btn.innerHTML = origin; btn.disabled = false; }
+        } catch(e) {
+            window.showToast("Lỗi tải giọng đọc: " + e.message, true);
+        } finally { btn.innerHTML = origin; btn.disabled = false; }
     }
 </script>
 </body>
