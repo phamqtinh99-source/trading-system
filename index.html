@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Giao Dịch V25 - Vận Hành Tuyệt Đối</title>
-    <!-- Thư viện mã hóa CryptoJS để tạo chữ ký API Binance -->
+    <title>Hệ Thống Giao Dịch V31 - Sạch Lỗi Tuyệt Đối</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         :root {
@@ -140,16 +139,6 @@
         .trend-down .mtf-value { color: var(--accent-red); }
         .trend-neutral { border-bottom: 3px solid var(--text-muted); }
 
-        .vp-box {
-            background: linear-gradient(145deg, rgba(0, 229, 255, 0.1), rgba(0, 0, 0, 0)); border: 1px solid rgba(0, 229, 255, 0.3);
-            border-radius: 8px; padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .vp-info { display: flex; flex-direction: column; gap: 4px;}
-        .vp-status { font-weight: bold; font-size: 13px; padding: 4px 8px; border-radius: 4px; }
-        .vp-strong { background-color: rgba(14, 203, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
-        .vp-weak { background-color: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
-        .vp-wait { background-color: rgba(132, 142, 156, 0.2); color: var(--text-muted); }
-
         .live-action-box {
             background-color: var(--bg-card); border: 1px solid var(--border-color);
             border-radius: 8px; padding: 12px; margin-bottom: 15px;
@@ -168,6 +157,7 @@
         .checklist-title { font-size: 12px; color: var(--accent-yellow); font-weight: bold; margin-bottom: 8px; text-transform: uppercase; display: block;}
         .check-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; color: var(--text-main); cursor: pointer; }
         .check-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent-yellow); }
+        .check-warning { font-size: 11px; color: var(--accent-red); font-style: italic; display: none; margin-top: 5px;}
 
         .fibo-table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 12px; }
         .fibo-table th, .fibo-table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border-color); }
@@ -244,7 +234,7 @@
 </head>
 <body>
 
-<!-- HỆ THỐNG CUSTOM TOAST THAY THẾ ALERT BỊ CHẶN -->
+<!-- HỆ THỐNG CUSTOM TOAST -->
 <div id="customToast" style="position: fixed; top: -50px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: bold; font-size: 14px; z-index: 99999; transition: top 0.4s ease, opacity 0.4s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; min-width: 250px; opacity: 0; pointer-events: none;"></div>
 
 <div class="dashboard">
@@ -253,11 +243,17 @@
     <div class="panel full-width">
         <h2><span style="color: var(--accent-cyan);">📡 PANEL ĐẦU VÀO:</span> RADAR ĐỊNH LƯỢNG VĨ MÔ</h2>
         <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 15px;">
-            Thẻ nào nháy đèn <strong style="color:var(--accent-yellow);">🔥 ĐANG IN ZONE</strong> tức là giá đã lùi về vùng Hộp Vàng (EMA 34/89), <strong style="color:white;">hãy Click trực tiếp vào thẻ đó</strong> để nạp dữ liệu xuống Panel 1.
+            Radar xác định xu hướng lớn bằng <strong>EMA 200</strong>. Thẻ nháy đèn <strong style="color:var(--accent-yellow);">🔥 ĐANG IN ZONE</strong> tức là giá đã lùi về Hộp Vàng Fibo.
         </p>
+
+        <div class="toggle-btn" style="max-width: 400px; margin: 0 auto 20px auto;" id="radarModeToggle">
+            <button id="btnRadarCrypto" class="active" style="background-color: var(--accent-cyan); color: #000; opacity: 1;" onclick="window.setRadarMode('crypto')">Chỉ Quét Crypto (Ẩn Rác)</button>
+            <button id="btnRadarAll" style="background-color: var(--bg-card); color: var(--text-muted); opacity: 0.5;" onclick="window.setRadarMode('all')">Tất Cả Các Mã</button>
+        </div>
+
         <div style="text-align: center; margin-bottom: 20px;">
-            <button class="action-btn" style="width: auto; padding: 10px 30px; background-color: var(--accent-cyan); color: #000;" onclick="scanRadar()" id="btnRadar">
-                📡 Khởi Động Radar (Quét Top 30)
+            <button class="action-btn" style="width: auto; padding: 10px 30px; background-color: var(--accent-cyan); color: #000;" onclick="window.scanRadar()" id="btnRadar">
+                📡 Khởi Động Radar (Quét Top 30 Vol To Nhất)
             </button>
         </div>
         <div class="radar-grid" id="radarGrid">
@@ -266,50 +262,50 @@
             </div>
         </div>
         <div style="text-align: center;">
-            <button class="action-btn btn-expand" onclick="expandRadar()" id="btnExpandRadar" style="display: none; width: auto; padding: 8px 20px;">
+            <button class="action-btn btn-expand" onclick="window.expandRadar()" id="btnExpandRadar" style="display: none; width: auto; padding: 8px 20px;">
                 + Mở rộng quét tiếp 30 mã tiếp theo ➔
             </button>
         </div>
     </div>
 
-    <!-- PANEL 1: QUÉT HỢP LƯU EMA -->
+    <!-- PANEL 1: QUÉT HỢP LƯU EMA 200 & FIBO -->
     <div class="panel">
-        <h2><span>1.</span> XÁC ĐỊNH XU HƯỚNG & VÙNG GIÁ TRỊ</h2>
+        <h2><span>1.</span> XÁC ĐỊNH XU HƯỚNG & HỘP VÀNG FIBO</h2>
         
         <div class="input-group row" style="margin-bottom: 15px;">
             <div style="flex: 2;">
                 <label><span class="step-badge">1</span> Mã Coin</label>
-                <input type="text" id="symbolInput" value="ETHUSDT" oninput="this.value = this.value.toUpperCase(); syncSymbol();">
+                <input type="text" id="symbolInput" value="ETHUSDT" oninput="this.value = this.value.toUpperCase(); window.syncSymbol();">
             </div>
             <div style="flex: 1; display: flex; align-items: flex-end;">
-                <button class="action-btn" style="margin-top:0; background-color: var(--accent-blue); color: white;" onclick="scanMultiTimeframe()" id="btnScan">
+                <button class="action-btn" style="margin-top:0; background-color: var(--accent-blue); color: white;" onclick="window.scanMultiTimeframe()" id="btnScan">
                     Quét Đa Tầng
                 </button>
             </div>
         </div>
         
         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-            <button onclick="openChart('binance')" style="flex: 1; padding: 8px; background: rgba(243, 186, 47, 0.1); border: 1px solid #F3BA2F; color: #F3BA2F; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">🟨 Chart Binance</button>
-            <button onclick="openChart('tv')" style="flex: 1; padding: 8px; background: rgba(41, 98, 255, 0.1); border: 1px solid var(--accent-blue); color: var(--accent-blue); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">🟦 TradingView</button>
-            <button onclick="addCurrentToWatchlist()" id="btnQuickWatch" style="flex: 1; padding: 8px; background: rgba(182, 32, 224, 0.1); border: 1px solid var(--accent-purple); color: var(--accent-purple); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">⭐ Lưu Theo Dõi</button>
+            <button onclick="window.openChart('binance')" style="flex: 1; padding: 8px; background: rgba(243, 186, 47, 0.1); border: 1px solid #F3BA2F; color: #F3BA2F; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">🟨 Chart Binance</button>
+            <button onclick="window.openChart('tv')" style="flex: 1; padding: 8px; background: rgba(41, 98, 255, 0.1); border: 1px solid var(--accent-blue); color: var(--accent-blue); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">🟦 TradingView</button>
+            <button onclick="window.addCurrentToWatchlist()" id="btnQuickWatch" style="flex: 1; padding: 8px; background: rgba(182, 32, 224, 0.1); border: 1px solid var(--accent-purple); color: var(--accent-purple); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">⭐ Lưu Theo Dõi</button>
         </div>
         
         <div class="mtf-container" id="mtfDisplay">
             <div class="mtf-box trend-neutral" id="boxH4">
-                <span class="mtf-title">BƯỚC 1: XU HƯỚNG H4 RÕ RÀNG</span>
+                <span class="mtf-title">VĨ MÔ (H4)</span>
                 <span class="mtf-value">-</span>
-                <span class="mtf-desc">Chờ quét EMA 34 và EMA 89...</span>
+                <span class="mtf-desc">Chờ quét EMA 200...</span>
             </div>
             <div class="mtf-box trend-neutral" id="boxH1">
-                <span class="mtf-title">BƯỚC 2: VÙNG GIÁ TRỊ EMA (H1)</span>
+                <span class="mtf-title">SÓNG (H1)</span>
                 <span class="mtf-value">-</span>
-                <span class="mtf-desc">Tính toán vùng đón lõng...</span>
+                <span class="mtf-desc">Chờ quét EMA 200...</span>
             </div>
         </div>
         
         <div class="live-action-box" id="liveActionBox">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 11px; color: var(--accent-cyan); font-weight: bold;">Giá Hiện Tại</span>
+                <span style="font-size: 11px; color: var(--accent-cyan); font-weight: bold; text-transform: uppercase;">Giá Hiện Tại</span>
                 <span id="displayCurrentPrice" style="font-size: 22px; font-weight: bold; color: white;">0.00</span>
             </div>
             <div id="actionStrategy" style="font-size: 13px; font-weight: bold; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: var(--text-muted); text-align: center;">
@@ -318,31 +314,31 @@
         </div>
 
         <div class="toggle-btn" id="fiboToggle" style="margin-bottom: 10px; display: none;">
-            <button class="btn-long active" onclick="setFiboType('long')">Canh LONG</button>
-            <button class="btn-short" onclick="setFiboType('short')">Canh SHORT</button>
+            <button class="btn-long active" onclick="window.setFiboType('long')">Kịch Bản LONG</button>
+            <button class="btn-short" onclick="window.setFiboType('short')">Kịch Bản SHORT</button>
         </div>
         
         <div class="input-group row" style="display: flex;">
-            <div><label>Đỉnh Cấu Trúc (H1)</label><input type="number" id="fiboHigh" oninput="calcFibo()" placeholder="Quét tự động..."></div>
-            <div><label>Đáy Cấu Trúc (H1)</label><input type="number" id="fiboLow" oninput="calcFibo()" placeholder="Quét tự động..."></div>
+            <div><label>Đỉnh Sóng H1</label><input type="number" id="fiboHigh" oninput="window.calcFibo()" placeholder="Đỉnh cũ..."></div>
+            <div><label>Đáy Sóng H1</label><input type="number" id="fiboLow" oninput="window.calcFibo()" placeholder="Đáy cũ..."></div>
         </div>
 
         <table class="data-table" id="fiboTable" style="margin-bottom: 15px;">
             <thead>
                 <tr>
-                    <th>MỤC TIÊU</th>
-                    <th>MỨC GIÁ</th>
-                    <th>KẾ HOẠCH</th>
+                    <th>Mốc Fibo</th>
+                    <th>Mức Giá</th>
+                    <th>Kế Hoạch Đón Lõng</th>
                 </tr>
             </thead>
             <tbody id="fiboBody">
-                <tr><td colspan="3" style="text-align:center; color: #848E9C;">Nhấn Quét Dữ Liệu để phân tích Entry (EMA) và TP (Fibo Ext)</td></tr>
+                <tr><td colspan="3" style="text-align:center; color: #848E9C;">Nhấn Quét Dữ Liệu để phân tích Lưới Fibo</td></tr>
             </tbody>
         </table>
         
         <div style="text-align: center; margin-top: 15px;">
             <label><span class="step-badge">2</span> Chuyển thông số sang máy tính Volume</label>
-            <button class="action-btn" onclick="transferToRR()" id="btnTransfer" style="display:none; background-color: var(--accent-green); color: black;">
+            <button class="action-btn" onclick="window.transferToRR()" id="btnTransfer" style="display:none; background-color: var(--accent-green); color: black;">
                 ⬇ NẠP DỮ LIỆU SANG BẢNG TÍNH ⬇
             </button>
         </div>
@@ -353,10 +349,10 @@
         <h2><span>2.</span> QUẢN TRỊ VỐN & KHỐI LƯỢNG LỆNH</h2>
         
         <div class="checklist-box">
-            <span class="checklist-title">⚠️ Chốt Kỷ Luật Bắt Buộc (Bước 2, 5)</span>
-            <label class="check-item"><input type="checkbox" id="chkTrend" onchange="validateChecklist()"> 1. Xu hướng rõ (Không nằm trong vùng Sideway đan xen)</label>
-            <label class="check-item"><input type="checkbox" id="chkSweep" onchange="validateChecklist()"> 2. Giá hồi về vùng EMA 34/89 & Có Nến từ chối (Rút chân)</label>
-            <label class="check-item"><input type="checkbox" id="chkMACD" onchange="validateChecklist()"> 3. Động Lượng: <strong style="color:var(--accent-red); margin-left:4px;">KHÔNG BỊ PHÂN KỲ ĐẢO CHIỀU TRÊN H4</strong></label>
+            <span class="checklist-title">⚠️ Chốt Kỷ Luật Bắt Buộc (SMC / Dow)</span>
+            <label class="check-item"><input type="checkbox" id="chkTrend" onchange="window.validateChecklist()"> 1. Thuận xu hướng EMA 200 (Hoặc có setup bắt đảo chiều chuẩn)</label>
+            <label class="check-item"><input type="checkbox" id="chkSweep" onchange="window.validateChecklist()"> 2. Giá lùi về Hộp Vàng (0.5-0.618) & Có nến quét thanh khoản (Rút râu)</label>
+            <label class="check-item"><input type="checkbox" id="chkMACD" onchange="window.validateChecklist()"> 3. Động lượng: <strong style="color:var(--accent-red); margin-left:4px;">KHÔNG BỊ PHÂN KỲ CHỐNG LẠI XU HƯỚNG</strong></label>
             
             <div id="checkWarning" style="color: var(--accent-red); font-size: 12px; font-weight: bold; margin-top: 10px; padding: 10px; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); border-radius: 6px; text-align: center;">
                 ⚠️ NÚT ĐẶT LỆNH ĐANG KHÓA: Hãy tích đủ 3 điều kiện trên để mở khóa nút "Bóp Cò"!
@@ -364,19 +360,18 @@
         </div>
 
         <div class="toggle-btn" style="margin-bottom: 15px;">
-            <button id="btnLong" class="btn-long active" onclick="setTradeType('long')">Vị thế LONG</button>
-            <button id="btnShort" class="btn-short" onclick="setTradeType('short')">Vị thế SHORT</button>
+            <button id="btnLong" class="btn-long active" onclick="window.setTradeType('long')">Vị thế LONG</button>
+            <button id="btnShort" class="btn-short" onclick="window.setTradeType('short')">Vị thế SHORT</button>
         </div>
 
-        <!-- QUẢN TRỊ VỐN DỰA THEO SỐ DƯ TỔNG VÀ TỶ LỆ PHẦN TRĂM (%) -->
         <div class="input-group row" style="background: rgba(41, 98, 255, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed var(--accent-blue); margin-bottom: 15px;">
             <div style="flex:1;">
                 <label>Tổng Số Dư Ví (USDT)</label>
-                <input type="number" id="walletCapital" value="1000" step="10" oninput="updateRiskFromPercent()">
+                <input type="number" id="walletCapital" value="1000" step="10" oninput="window.updateRiskFromPercent()">
             </div>
             <div style="flex:1;">
                 <label>Rủi Ro Chấp Nhận (%)</label>
-                <input type="number" id="riskPercent" value="2" step="0.5" max="100" min="0.1" oninput="updateRiskFromPercent()" style="color: var(--accent-yellow); font-weight: bold;">
+                <input type="number" id="riskPercent" value="2" step="0.5" max="100" min="0.1" oninput="window.updateRiskFromPercent()" style="color: var(--accent-yellow); font-weight: bold;">
             </div>
         </div>
 
@@ -388,35 +383,35 @@
             <div class="input-group row">
                 <div style="flex:1;">
                     <label>Tiền Lỗ Tối Đa (USDT) <span class="badge badge-ema" style="background:var(--accent-red)">Tự động</span></label>
-                    <input type="number" id="risk" value="20" step="1" oninput="updatePercentFromRisk()">
+                    <input type="number" id="risk" value="20" step="1" oninput="window.updatePercentFromRisk()">
                 </div>
                 <div style="flex:1;">
                     <label>Giá Vào (Entry)</label>
-                    <input type="number" id="entry" oninput="calculate()">
+                    <input type="number" id="entry" oninput="window.calculate()">
                 </div>
             </div>
 
             <div class="input-group">
                 <label>Giá SL (Dưới đáy/đỉnh gần nhất để bảo vệ vốn)</label>
-                <input type="number" id="sl" oninput="calculate()">
+                <input type="number" id="sl" oninput="window.calculate()">
             </div>
 
             <div class="input-group row">
                 <div style="flex: 1;">
                     <label>TP1 (Chốt 50% Trước Cản)</label>
-                    <input type="number" id="tp1" style="border-color: var(--accent-green);" oninput="calculate()">
+                    <input type="number" id="tp1" style="border-color: var(--accent-green);" oninput="window.calculate()">
                     <div>
-                        <button class="tp-quick-btn" onclick="quickSetTP(1, 1)">Tỷ lệ R:R 1:1</button>
-                        <button class="tp-quick-btn" onclick="quickSetTP(1, 2)">Tỷ lệ R:R 1:2</button>
-                        <button class="tp-quick-btn" onclick="quickSetTP(1, 'c')">Đỉnh/Đáy Cũ</button>
+                        <button class="tp-quick-btn" onclick="window.quickSetTP(1, 1)">Tỷ lệ R:R 1:1</button>
+                        <button class="tp-quick-btn" onclick="window.quickSetTP(1, 2)">Tỷ lệ R:R 1:2</button>
+                        <button class="tp-quick-btn" onclick="window.quickSetTP(1, 'c')">Đỉnh/Đáy Cũ</button>
                     </div>
                 </div>
                 <div style="flex: 1;">
                     <label>TP2 (Gồng 50% Theo Fibo)</label>
-                    <input type="number" id="tp2" style="border-color: var(--accent-blue);" oninput="calculate()">
+                    <input type="number" id="tp2" style="border-color: var(--accent-blue);" oninput="window.calculate()">
                     <div>
-                        <button class="tp-quick-btn fibo" onclick="quickSetTP(2, 1.618)">Fibo Mở rộng 1.618</button>
-                        <button class="tp-quick-btn fibo" onclick="quickSetTP(2, 2.618)">Fibo Mở rộng 2.618</button>
+                        <button class="tp-quick-btn fibo" onclick="window.quickSetTP(2, 1.618)">Fibo Mở rộng 1.618</button>
+                        <button class="tp-quick-btn fibo" onclick="window.quickSetTP(2, 2.618)">Fibo Mở rộng 2.618</button>
                     </div>
                 </div>
             </div>
@@ -471,16 +466,14 @@
                     </div>
                 </div>
 
-                <!-- Bảng nhắc nhở Trailing Stop -->
                 <div style="background: rgba(41, 98, 255, 0.1); border-left: 3px solid var(--accent-blue); padding: 10px; margin-top: 5px; border-radius: 4px;">
                     <span style="display:block; font-size: 11px; color: var(--accent-blue); font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">🛡️ Kế Hoạch Trailing Stop Bảo Vệ Lãi:</span>
                     <label style="font-size: 12px; color: var(--text-main); display: flex; gap: 8px; cursor: pointer; align-items: center;">
                         <input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent-blue);"> 
-                        Khi giá cắn TP1, BẮT BUỘC dời SL về <span id="priceAt1R" style="color:var(--accent-yellow); font-weight:bold;">0.00</span> (Hòa vốn) để bảo toàn 50% lãi.
+                        Khi giá cắn TP1, BẮT BUỘC dời SL về <span id="priceAt1R" style="color:var(--accent-yellow); font-weight:bold;">0.00</span> (Hòa vốn) để bảo toàn lãi.
                     </label>
                 </div>
 
-                <!-- BỘ ĐẾM KỶ LUẬT DRAWDOWN -->
                 <div class="system-sl-tracker">
                     <div style="flex: 1;">
                         <h4 style="margin: 0 0 5px 0; font-size: 13px; color: var(--text-main);">Bộ Đếm Kỷ Luật (Drawdown)</h4>
@@ -488,13 +481,11 @@
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                         <div class="loss-dots" id="lossDots">
-                            <div class="loss-dot"></div>
-                            <div class="loss-dot"></div>
-                            <div class="loss-dot"></div>
+                            <div class="loss-dot"></div><div class="loss-dot"></div><div class="loss-dot"></div>
                         </div>
                         <div style="display: flex; gap: 5px;">
-                            <button onclick="logResult('win')" style="background: rgba(14, 203, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">✅ Win (Reset)</button>
-                            <button onclick="logResult('loss')" style="background: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">❌ Loss (+1)</button>
+                            <button onclick="window.logResult('win')" style="background: rgba(14, 203, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">✅ Win (Reset)</button>
+                            <button onclick="window.logResult('loss')" style="background: rgba(246, 70, 93, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer;">❌ Loss (+1)</button>
                         </div>
                     </div>
                 </div>
@@ -510,7 +501,7 @@
             <strong style="color: var(--accent-yellow);">QUY TRÌNH:</strong> Đảm bảo Đã tick 3 Chốt An Toàn ở Panel 2 -> Bấm nút nã ENTRY Market -> Bật app điện thoại cài SL/TP tự động để bảo vệ vốn.
         </div>
         
-        <div class="input-group"><label>API Key</label><input type="password" id="apiKey"></div>
+        <div class="input-group"><label>API Key</label><input type="password" id="binanceApiKey"></div>
         <div class="input-group"><label>Secret Key</label><input type="password" id="apiSecret"></div>
         
         <div class="input-group row">
@@ -525,11 +516,11 @@
             </div>
         </div>
         
-        <button class="action-btn btn-trade" onclick="placeBinanceOrder()" id="btnExecuteTrade" disabled>
+        <button class="action-btn btn-trade" onclick="window.placeBinanceOrder()" id="btnExecuteTrade" disabled>
             🔒 NÚT ĐẶT LỆNH ĐANG BỊ KHÓA
         </button>
         
-        <div id="manualReminder" style="display: none; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;">
+        <div id="manualReminder" style="display: none; background: rgba(246, 70, 93, 0.1); border: 1px dashed var(--accent-red); padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; animation: pulseAlertBox 1s infinite;">
             <h3 style="color: var(--accent-red); margin: 0 0 10px 0; font-size: 14px;">🚨 LỆNH ENTRY ĐÃ KHỚP! BẬT APP KIỂM TRA NGAY:</h3>
             <div style="font-size: 16px; font-weight: bold; margin-top: 10px; line-height: 1.6;">
                 Cắt lỗ (SL): <span id="remindSL" style="color: var(--accent-red); background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px;">0.00</span><br>
@@ -538,7 +529,7 @@
             </div>
         </div>
 
-        <div id="tradeConsole" style="background: #000; color: #0ECB81; font-family: monospace; font-size: 12px; padding: 15px; border-radius: 8px; margin-top: 15px; min-height: 50px;">> Trạng thái: Hệ thống sẵn sàng...</div>
+        <div class="console-log" id="tradeConsole">> Trạng thái: Hệ thống sẵn sàng...</div>
     </div>
 
     <!-- PANEL 4: QUẢN LÝ TÀI KHOẢN -->
@@ -549,7 +540,7 @@
                 <span style="display:block; font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">Số Dư Khả Dụng (Futures)</span>
                 <span id="walletBalance" style="font-size: 28px; font-weight: bold; color: var(--accent-green);">0.00 <span style="font-size:16px; color:white;">USDT</span></span>
             </div>
-            <button class="action-btn" style="width: auto; background-color: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 15px; margin-top:0;" onclick="syncBinanceAccount()" id="btnSyncAcc">🔄 Đồng Bộ Ví</button>
+            <button class="action-btn" style="width: auto; background-color: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 15px; margin-top:0;" onclick="window.syncBinanceAccount()" id="btnSyncAcc">🔄 Đồng Bộ Ví</button>
         </div>
         
         <div style="overflow-x: auto;">
@@ -569,12 +560,12 @@
         <div style="background: rgba(182, 32, 224, 0.05); border: 1px dashed var(--accent-purple); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <div style="flex: 1; min-width: 250px;">
-                    <h3 style="margin:0 0 5px 0; color: var(--accent-purple); font-size: 15px;">✨ Thẩm định lệnh & Tâm lý (Trường phái Trend Following)</h3>
+                    <h3 style="margin:0 0 5px 0; color: var(--accent-purple); font-size: 15px;">✨ Thẩm định lệnh & Tâm lý</h3>
                     <p style="margin:0; font-size:12px; color:var(--text-muted);">AI sẽ nhắc nhở bạn duy trì kỷ luật, kiểm tra Phân kỳ MACD và vùng cản.</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="action-btn" style="width: auto; margin:0; padding: 10px 15px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);" onclick="getDailyMindset()" id="btnMindset">✨ Đọc Châm Ngôn</button>
-                    <button class="action-btn" style="width: auto; margin:0; padding: 10px 20px; background: linear-gradient(45deg, var(--accent-purple), var(--accent-blue)); color: white; border:none;" onclick="analyzeTradeWithAI()" id="btnAI">✨ Phân Tích Lệnh</button>
+                    <button class="action-btn" style="width: auto; margin:0; padding: 10px 15px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);" onclick="window.getDailyMindset()" id="btnMindset">✨ Đọc Châm Ngôn</button>
+                    <button class="action-btn" style="width: auto; margin:0; padding: 10px 20px; background: linear-gradient(45deg, var(--accent-purple), var(--accent-blue)); color: white; border:none;" onclick="window.analyzeTradeWithAI()" id="btnAI">✨ Phân Tích Lệnh</button>
                 </div>
             </div>
             
@@ -582,13 +573,13 @@
                 <h4 style="margin: 0 0 10px 0; color: var(--accent-red); font-size: 13px;">🚑 Cấp Cứu Tâm Lý Giao Dịch</h4>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <input type="text" id="psychoInput" placeholder="Kể bệnh (VD: Thua 3 lệnh liên tiếp do Sideway, cay quá...)" style="flex: 2; font-size: 13px; min-width: 200px;">
-                    <button class="action-btn" style="flex: 1; margin: 0; padding: 10px; background: rgba(246, 70, 93, 0.1); color: var(--accent-red); border: 1px solid var(--accent-red); min-width: 120px;" onclick="diagnosePsychology()" id="btnPsycho">🚑 Khám Bệnh</button>
+                    <button class="action-btn" style="flex: 1; margin: 0; padding: 10px; background: rgba(246, 70, 93, 0.1); color: var(--accent-red); border: 1px solid var(--accent-red); min-width: 120px;" onclick="window.diagnosePsychology()" id="btnPsycho">🚑 Khám Bệnh</button>
                 </div>
             </div>
             
             <div id="aiResponseBox" style="display: none; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 8px; border-left: 3px solid var(--accent-purple); font-size: 14px; line-height: 1.6; color: #EAECEF; max-height: 400px; overflow-y: auto; margin-top: 15px;">
                 <div id="aiContent" style="margin-bottom: 15px;"></div>
-                <button id="btnTTS" class="action-btn" style="display: none; width: auto; background: rgba(0, 229, 255, 0.1); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 8px 15px; margin: 0; font-size: 12px;" onclick="speakAIResponse()">🔊 Nghe Đọc To</button>
+                <button id="btnTTS" class="action-btn" style="display: none; width: auto; background: rgba(0, 229, 255, 0.1); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 8px 15px; margin: 0; font-size: 12px;" onclick="window.speakAIResponse()">🔊 Nghe Đọc To</button>
             </div>
         </div>
 
@@ -601,11 +592,11 @@
             <div style="flex: 1; min-width: 300px; border: 1px solid var(--border-color); padding: 15px; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="font-size: 13px; color: var(--accent-yellow); margin: 0;">📌 Danh Sách Theo Dõi</h3>
-                    <button class="action-btn" style="width:auto; margin:0; padding:6px 12px; font-size:11px; background: rgba(252, 213, 53, 0.1); border: 1px solid var(--accent-yellow); color: var(--accent-yellow);" onclick="analyzeWatchlist()" id="btnSoiList">✨ AI Phân Tích DS</button>
+                    <button class="action-btn" style="width:auto; margin:0; padding:6px 12px; font-size:11px; background: rgba(252, 213, 53, 0.1); border: 1px solid var(--accent-yellow); color: var(--accent-yellow);" onclick="window.analyzeWatchlist()" id="btnSoiList">✨ AI Phân Tích DS</button>
                 </div>
                 <div style="display:flex; gap:10px; margin-bottom: 10px;">
                     <input type="text" id="watchInput" placeholder="Mã Coin (VD: BTCUSDT)" style="padding: 6px; font-size: 12px;" oninput="this.value = this.value.toUpperCase();">
-                    <button class="action-btn" style="background:var(--bg-card); color:white; border:1px solid #474D57; padding: 5px 10px; border-radius:4px; margin:0; width: auto;" onclick="addWatchlist()">Thêm</button>
+                    <button class="action-btn" style="background:var(--bg-card); color:white; border:1px solid #474D57; padding: 5px 10px; border-radius:4px; margin:0; width: auto;" onclick="window.addWatchlist()">Thêm</button>
                 </div>
                 <div id="watchlistAIPanel" style="display:none; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-left: 2px solid var(--accent-yellow); font-size: 12px; color: #EAECEF; max-height: 200px; overflow-y: auto;"></div>
                 <table class="data-table"><thead><tr><th>Mã Coin</th><th>Hành động</th></tr></thead><tbody id="watchBody"><tr><td colspan="2" style="text-align:center; font-style:italic;">Chưa có mã nào...</td></tr></tbody></table>
@@ -622,56 +613,44 @@
 </div>
 
 <script>
-    // --- GLOBAL VARIABLES ---
-    let allFuturesPairs = []; 
-    let currentScanLimit = 30;
-    let globalH4Trend = ''; let globalH4State = ''; 
-    let globalEMA34_H1 = 0; let globalEMA89_H1 = 0; 
-    let globalCurrentPrice = 0;
-    let currentFiboData = {}; 
-    let watchlistArr = [];
-    let fType = 'long'; 
-    const apiKey = ""; 
-    let lastAIResponseText = ""; 
-    let consecutiveLosses = 0;
-    let isSystemLocked = false;
+    // ==========================================
+    // KHỐI QUẢN LÝ BIẾN TOÀN CỤC CHUẨN MỰC 
+    // CHỈ DÙNG 1 LẦN ĐỂ KHÔNG BAO GIỜ BỊ CRASH 
+    // ==========================================
+    window.allFuturesPairs = []; 
+    window.currentScanLimit = 30;
+    window.globalH4Trend = ''; 
+    window.globalH4State = ''; 
+    window.globalEMA200_H4 = 0; 
+    window.globalEMA200_H1 = 0; 
+    window.globalCurrentPrice = 0;
+    window.currentFiboData = {}; 
+    window.watchlistArr = [];
+    window.fType = 'long'; 
+    window.lastAIResponseText = ""; 
+    window.consecutiveLosses = 0;
+    window.isSystemLocked = false;
+    window.tradeType = 'long'; 
+    window.radarMode = 'crypto';
+    const geminiApiKey = "";
 
     // --- KHỞI TẠO BỌC LỖI LOCAL STORAGE ---
     window.onload = function() {
         try {
             let savedLosses = localStorage.getItem('consecLossTracker');
             if (savedLosses !== null) {
-                consecutiveLosses = parseInt(savedLosses);
+                window.consecutiveLosses = parseInt(savedLosses);
             }
         } catch (error) {
-            console.warn("Môi trường chặn localStorage.");
+            console.warn("Môi trường bị chặn bảo mật localStorage.");
         }
-        updateLossDotsUI();
+        window.updateLossDotsUI();
     };
 
     // --- HỆ THỐNG CUSTOM TOAST ---
-    function showToast(message, isError = false) {
+    window.showToast = function(message, isError = false) {
         let toast = document.getElementById('customToast');
-        if(!toast) {
-            toast = document.createElement('div');
-            toast.id = 'customToast';
-            toast.style.position = 'fixed';
-            toast.style.top = '-50px'; 
-            toast.style.left = '50%';
-            toast.style.transform = 'translateX(-50%)';
-            toast.style.padding = '12px 20px';
-            toast.style.borderRadius = '8px';
-            toast.style.color = '#fff';
-            toast.style.fontWeight = 'bold';
-            toast.style.fontSize = '14px';
-            toast.style.zIndex = '99999';
-            toast.style.transition = 'top 0.4s ease, opacity 0.4s ease';
-            toast.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
-            toast.style.textAlign = 'center';
-            toast.style.minWidth = '250px';
-            toast.style.pointerEvents = 'none';
-            document.body.appendChild(toast);
-        }
+        if(!toast) return;
         toast.style.backgroundColor = isError ? 'var(--accent-red)' : 'var(--accent-green)';
         toast.innerHTML = message;
         toast.style.opacity = '1';
@@ -685,97 +664,142 @@
     }
 
     // --- TIỆN ÍCH ---
-    function safeSetText(elementId, value) { const el = document.getElementById(elementId); if (el) el.innerText = value; }
-    function safeSetHTML(elementId, htmlString) { const el = document.getElementById(elementId); if (el) el.innerHTML = htmlString; }
-    function safeSetValue(elementId, value) { const el = document.getElementById(elementId); if (el) el.value = value; }
-    function safeSetClass(elementId, className) { const el = document.getElementById(elementId); if (el) el.className = className; }
-    function pFmt(val) {
+    window.safeSetText = function(elementId, value) { const el = document.getElementById(elementId); if (el) el.innerText = value; }
+    window.safeSetHTML = function(elementId, htmlString) { const el = document.getElementById(elementId); if (el) el.innerHTML = htmlString; }
+    window.safeSetValue = function(elementId, value) { const el = document.getElementById(elementId); if (el) el.value = value; }
+    window.safeSetClass = function(elementId, className) { const el = document.getElementById(elementId); if (el) el.className = className; }
+    window.pFmt = function(val) {
         if (isNaN(val) || val === null) return "0.00";
         if (val < 0.01) return val.toFixed(6);
         if (val < 10) return val.toFixed(4);
         return val.toFixed(2);
     }
+    
+    // --- LÀM TRÒN TỶ ĐÔ CHO RADAR ---
+    window.volFmt = function(vol) {
+        if (isNaN(vol) || vol === null) return "0";
+        if (vol >= 1e9) return (vol / 1e9).toFixed(2) + 'B';
+        if (vol >= 1e6) return (vol / 1e6).toFixed(2) + 'M';
+        if (vol >= 1e3) return (vol / 1e3).toFixed(2) + 'K';
+        return vol.toFixed(0);
+    }
 
-    function updateLossDotsUI() {
+    window.updateLossDotsUI = function() {
         const dots = document.querySelectorAll('.loss-dot');
         for(let i=0; i<3; i++) {
             if(dots[i]) {
-                if(i < consecutiveLosses) dots[i].classList.add('active');
+                if(i < window.consecutiveLosses) dots[i].classList.add('active');
                 else dots[i].classList.remove('active');
             }
         }
 
         const warningEl = document.getElementById('checkWarning');
-        if(consecutiveLosses >= 3) {
-            isSystemLocked = true;
+        if(window.consecutiveLosses >= 3) {
+            window.isSystemLocked = true;
             if(warningEl) {
                 warningEl.innerHTML = '🚨 HỆ THỐNG KHÓA: Bạn đã thua 3 lệnh liên tiếp! Thị trường đang Sideway điên loạn. Bắt buộc tắt máy nghỉ ngơi!';
                 warningEl.style.display = 'block';
             }
-            validateChecklist(); 
+            window.validateChecklist(); 
         } else {
-            isSystemLocked = false;
+            window.isSystemLocked = false;
             if(warningEl) warningEl.innerHTML = '⚠️ NÚT ĐẶT LỆNH ĐANG KHÓA: Hãy tích đủ 3 điều kiện trên để mở khóa nút "Bóp Cò"!';
-            validateChecklist();
+            window.validateChecklist();
         }
     }
 
-    function logResult(resultType) {
-        if(resultType === 'win') { consecutiveLosses = 0; } 
-        else if (resultType === 'loss') { if(consecutiveLosses < 3) consecutiveLosses++; }
-        try { localStorage.setItem('consecLossTracker', consecutiveLosses); } catch(e) {}
-        updateLossDotsUI();
+    window.logResult = function(resultType) {
+        if(resultType === 'win') { window.consecutiveLosses = 0; } 
+        else if (resultType === 'loss') { if(window.consecutiveLosses < 3) window.consecutiveLosses++; }
+        
+        try { localStorage.setItem('consecLossTracker', window.consecutiveLosses); } catch(e) {}
+        window.updateLossDotsUI();
     }
 
-    function openChart(platform) {
+    // --- MỞ CHART & WATCHLIST ---
+    window.openChart = function(platform) {
         const symbolEl = document.getElementById('symbolInput');
         if(!symbolEl) return;
         const symbol = symbolEl.value.trim().toUpperCase();
-        if(!symbol) { showToast("Vui lòng nhập mã coin trước khi mở Chart!", true); return; }
+        if(!symbol) { window.showToast("Vui lòng nhập mã coin trước khi mở Chart!", true); return; }
         if (platform === 'binance') window.open(`https://www.binance.com/vi/futures/${symbol}`, '_blank');
         else if (platform === 'tv') window.open(`https://www.tradingview.com/chart/?symbol=BINANCE:${symbol}.P`, '_blank');
     }
 
-    function syncSymbol() {
+    window.syncSymbol = function() {
         const el = document.getElementById('symbolInput');
-        if(el) safeSetValue('assetName', el.value);
+        if(el) window.safeSetValue('assetName', el.value);
     }
 
-    function addCurrentToWatchlist() {
+    window.addCurrentToWatchlist = function() {
         const symbolEl = document.getElementById('symbolInput');
         if(!symbolEl) return;
         const symbol = symbolEl.value.trim().toUpperCase();
-        if(!symbol) { showToast("Chưa nhập mã Coin!", true); return; }
+        if(!symbol) { window.showToast("Chưa nhập mã Coin!", true); return; }
         
-        if(!watchlistArr.includes(symbol)) {
-            watchlistArr.push(symbol); renderWatchlist();
+        if(!window.watchlistArr.includes(symbol)) {
+            window.watchlistArr.push(symbol); window.renderWatchlist();
             const btn = document.getElementById('btnQuickWatch');
             if(btn) {
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '✅ Đã lưu'; btn.style.backgroundColor = 'rgba(14, 203, 129, 0.1)'; btn.style.color = 'var(--accent-green)'; btn.style.borderColor = 'var(--accent-green)';
                 setTimeout(() => { btn.innerHTML = originalText; btn.style.backgroundColor = 'rgba(182, 32, 224, 0.1)'; btn.style.color = 'var(--accent-purple)'; btn.style.borderColor = 'var(--accent-purple)'; }, 1500);
             }
-            showToast(`Đã thêm ${symbol} vào danh sách theo dõi.`);
-        } else showToast(`Mã ${symbol} đã có sẵn trong Danh Sách Theo Dõi!`, true);
+            window.showToast(`Đã thêm ${symbol} vào danh sách theo dõi.`);
+        } else window.showToast(`Mã ${symbol} đã có sẵn trong Danh Sách Theo Dõi!`, true);
     }
 
-    function calculateEMA(closes, period) {
+    // --- CÔNG TẮC LỌC MÃ RADAR ---
+    window.setRadarMode = function(mode) {
+        window.radarMode = mode;
+        const btnCrypto = document.getElementById('btnRadarCrypto');
+        const btnAll = document.getElementById('btnRadarAll');
+        
+        if (mode === 'crypto') {
+            btnCrypto.className = 'active';
+            btnCrypto.style.backgroundColor = 'var(--accent-cyan)';
+            btnCrypto.style.color = '#000';
+            btnCrypto.style.opacity = '1';
+            
+            btnAll.className = '';
+            btnAll.style.backgroundColor = 'var(--bg-card)';
+            btnAll.style.color = 'var(--text-muted)';
+            btnAll.style.opacity = '0.5';
+        } else {
+            btnAll.className = 'active';
+            btnAll.style.backgroundColor = 'var(--accent-cyan)';
+            btnAll.style.color = '#000';
+            btnAll.style.opacity = '1';
+            
+            btnCrypto.className = '';
+            btnCrypto.style.backgroundColor = 'var(--bg-card)';
+            btnCrypto.style.color = 'var(--text-muted)';
+            btnCrypto.style.opacity = '0.5';
+        }
+        
+        window.allFuturesPairs = []; 
+        window.scanRadar();   
+    }
+
+    // --- TÍNH TOÁN EMA 200 & LẤY DỮ LIỆU ---
+    window.calculateEMA = function(closes, period) {
         if (!closes || closes.length < period) return null;
-        let k = 2 / (period + 1); let sum = 0;
+        let k = 2 / (period + 1); 
+        let sum = 0;
         for (let i = 0; i < period; i++) sum += closes[i];
         let ema = sum / period;
         for (let i = period; i < closes.length; i++) ema = (closes[i] - ema) * k + ema;
         return ema;
     }
 
-    async function getKlinesData(symbol, interval, limit = 200) {
+    window.getKlinesData = async function(symbol, interval, limit = 500) {
         const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Lỗi API/Mã coin không hợp lệ");
+        if (!res.ok) throw new Error("Mã coin không hợp lệ hoặc lỗi kết nối");
         return await res.json();
     }
 
-    async function scanMultiTimeframe() {
+    window.scanMultiTimeframe = async function() {
         const symbolEl = document.getElementById('symbolInput');
         if(!symbolEl) return;
         const sym = symbolEl.value.trim().toUpperCase(); 
@@ -784,49 +808,52 @@
         if(btn) { btn.innerHTML = "..."; btn.disabled = true; }
 
         try {
-            const h4Klines = await getKlinesData(sym, '4h', 200);
-            const h1Klines = await getKlinesData(sym, '1h', 200);
+            const h4Klines = await window.getKlinesData(sym, '4h', 500);
+            const h1Klines = await window.getKlinesData(sym, '1h', 500);
 
-            if (!h4Klines || h4Klines.length < 89 || !h1Klines || h1Klines.length < 89) {
-                showToast("Mã coin này quá mới, không đủ 89 nến để tính EMA.", true);
-                if(btn) { btn.innerHTML = "Quét Dữ Liệu"; btn.disabled = false; }
+            if (!h4Klines || h4Klines.length < 200 || !h1Klines || h1Klines.length < 200) {
+                window.showToast("Mã coin này quá mới, không đủ 200 nến để tính EMA 200.", true);
+                if(btn) { btn.innerHTML = "Quét Đa Tầng"; btn.disabled = false; }
                 return;
             }
 
             const h4Closes = h4Klines.map(k => parseFloat(k[4]));
             const h1Closes = h1Klines.map(k => parseFloat(k[4]));
 
-            globalCurrentPrice = h1Closes[h1Closes.length - 1];
-            safeSetText('displayCurrentPrice', pFmt(globalCurrentPrice));
+            window.globalCurrentPrice = h1Closes[h1Closes.length - 1];
+            window.safeSetText('displayCurrentPrice', window.pFmt(window.globalCurrentPrice));
 
-            const h4Ema34 = calculateEMA(h4Closes, 34); const h4Ema89 = calculateEMA(h4Closes, 89);
-            globalEMA34_H1 = calculateEMA(h1Closes, 34); globalEMA89_H1 = calculateEMA(h1Closes, 89);
+            const h4Ema200 = window.calculateEMA(h4Closes, 200);
+            const h1Ema200 = window.calculateEMA(h1Closes, 200);
 
             let h4StatusClass = "trend-neutral", h4StatusText = "";
 
-            if (globalCurrentPrice > h4Ema34 && h4Ema34 > h4Ema89) {
-                globalH4Trend = 'LONG'; globalH4State = 'UPTREND MẠNH'; h4StatusClass = 'trend-up';
-                h4StatusText = `<span class="mtf-title">BƯỚC 1: XU HƯỚNG H4</span><span class="mtf-value">TĂNG RÕ RÀNG</span><span class="mtf-desc">Giá > EMA34 > EMA89. Chỉ Canh Mua.</span>`;
-            } else if (globalCurrentPrice < h4Ema34 && h4Ema34 < h4Ema89) {
-                globalH4Trend = 'SHORT'; globalH4State = 'DOWNTREND MẠNH'; h4StatusClass = 'trend-down';
-                h4StatusText = `<span class="mtf-title">BƯỚC 1: XU HƯỚNG H4</span><span class="mtf-value">GIẢM RÕ RÀNG</span><span class="mtf-desc">Giá < EMA34 < EMA89. Chỉ Canh Bán.</span>`;
+            if (window.globalCurrentPrice > h4Ema200) {
+                window.globalH4Trend = 'LONG'; window.globalH4State = 'UPTREND'; h4StatusClass = 'trend-up';
+                h4StatusText = `<span class="mtf-title">VĨ MÔ (H4)</span><span class="mtf-value">TĂNG RÕ RÀNG</span><span class="mtf-desc">Giá > EMA 200. Chỉ Canh Mua.</span>`;
             } else {
-                globalH4Trend = 'SIDEWAY'; globalH4State = 'ĐI NGANG / TRANH CHẤP'; h4StatusClass = 'trend-neutral';
-                h4StatusText = `<span class="mtf-title">BƯỚC 1: XU HƯỚNG H4</span><span class="mtf-value" style="color:var(--accent-yellow)">SIDEWAY</span><span class="mtf-desc">EMA đan xen. ĐỨNG NGOÀI!</span>`;
+                window.globalH4Trend = 'SHORT'; window.globalH4State = 'DOWNTREND'; h4StatusClass = 'trend-down';
+                h4StatusText = `<span class="mtf-title">VĨ MÔ (H4)</span><span class="mtf-value">GIẢM RÕ RÀNG</span><span class="mtf-desc">Giá < EMA 200. Chỉ Canh Bán.</span>`;
             }
-            safeSetClass('boxH4', `mtf-box ${h4StatusClass}`); safeSetHTML('boxH4', h4StatusText);
+            window.safeSetClass('boxH4', `mtf-box ${h4StatusClass}`); window.safeSetHTML('boxH4', h4StatusText);
 
-            let maxZone = Math.max(globalEMA34_H1, globalEMA89_H1); let minZone = Math.min(globalEMA34_H1, globalEMA89_H1);
-            let h1StatusText = `<span class="mtf-title">BƯỚC 2: VÙNG GIÁ TRỊ EMA (H1)</span><span class="mtf-value" style="color:var(--accent-yellow)">${pFmt(minZone)} - ${pFmt(maxZone)}</span><span class="mtf-desc">Chờ giá kéo về vùng này để đón lõng</span>`;
-            safeSetHTML('boxH1', h1StatusText);
+            let h1StatusClass = "trend-neutral", h1StatusText = "";
+            if (window.globalCurrentPrice > h1Ema200) {
+                h1StatusClass = 'trend-up';
+                h1StatusText = `<span class="mtf-title">SÓNG (H1)</span><span class="mtf-value">SÓNG TĂNG</span><span class="mtf-desc">Giá > EMA 200</span>`;
+            } else {
+                h1StatusClass = 'trend-down';
+                h1StatusText = `<span class="mtf-title">SÓNG (H1)</span><span class="mtf-value">SÓNG GIẢM</span><span class="mtf-desc">Giá < EMA 200</span>`;
+            }
+            window.safeSetClass('boxH1', `mtf-box ${h1StatusClass}`); window.safeSetHTML('boxH1', h1StatusText);
 
-            setTradeType(globalH4Trend === 'SIDEWAY' ? 'long' : globalH4Trend.toLowerCase());
-            fType = globalH4Trend === 'SIDEWAY' ? 'long' : globalH4Trend.toLowerCase();
+            window.setTradeType(window.globalH4Trend === 'SIDEWAY' ? 'long' : window.globalH4Trend.toLowerCase());
+            window.fType = window.globalH4Trend === 'SIDEWAY' ? 'long' : window.globalH4Trend.toLowerCase();
             
             const fiboToggle = document.getElementById('fiboToggle');
             if(fiboToggle && fiboToggle.children.length >= 2) {
-                fiboToggle.children[0].classList.toggle('active', fType === 'long');
-                fiboToggle.children[1].classList.toggle('active', fType === 'short');
+                fiboToggle.children[0].classList.toggle('active', window.fType === 'long');
+                fiboToggle.children[1].classList.toggle('active', window.fType === 'short');
             }
 
             let highest = -Infinity, lowest = Infinity;
@@ -836,28 +863,28 @@
                 if (h > highest) highest = h; if (l < lowest) lowest = l;
             }
             
-            safeSetValue('fiboHigh', highest); safeSetValue('fiboLow', lowest);
-            calcFibo();
+            window.safeSetValue('fiboHigh', highest); window.safeSetValue('fiboLow', lowest);
+            window.calcFibo();
 
-            showToast("Quét dữ liệu đa tầng thành công!");
+            window.showToast("Quét dữ liệu EMA 200 và Fibo thành công!");
         } catch(e) { 
-            showToast("Lỗi API: " + e.message, true); 
+            window.showToast("Lỗi API: " + e.message, true); 
         } finally { 
             if(btn) { btn.innerHTML = "Quét Đa Tầng"; btn.disabled = false; } 
         }
-    }
+    };
 
-    function setFiboType(type) { 
-        fType = type; 
+    window.setFiboType = function(type) { 
+        window.fType = type; 
         const fiboToggle = document.getElementById('fiboToggle');
         if(fiboToggle && fiboToggle.children.length >= 2) {
             fiboToggle.children[0].classList.toggle('active', type === 'long');
             fiboToggle.children[1].classList.toggle('active', type === 'short');
         }
-        calcFibo();
+        window.calcFibo();
     }
 
-    function calcFibo() {
+    window.calcFibo = function() {
         const hEl = document.getElementById('fiboHigh'); const lEl = document.getElementById('fiboLow');
         if (!hEl || !lEl) return;
         
@@ -871,56 +898,64 @@
 
         const diff = h - l; let sl, tp1, tp2;
 
-        if (fType === 'long') {
+        if (window.fType === 'long') {
             sl = l * 0.998; tp1 = l + (diff * 1.618); tp2 = l + (diff * 2.618); 
         } else {
             sl = h * 1.002; tp1 = h - (diff * 1.618); tp2 = h - (diff * 2.618);
         }
 
-        let maxZone = Math.max(globalEMA34_H1, globalEMA89_H1); let minZone = Math.min(globalEMA34_H1, globalEMA89_H1);
-        let entryPrice = (globalEMA34_H1 + globalEMA89_H1) / 2;
+        window.currentFiboData = {};
 
-        if (!entryPrice || isNaN(entryPrice)) {
-            maxZone = fType === 'long' ? h - (diff * 0.5) : l + (diff * 0.5); minZone = fType === 'long' ? h - (diff * 0.618) : l + (diff * 0.618);
-            entryPrice = (maxZone + minZone) / 2;
-        }
+        const levels = [
+            { ratio: 0, label: '0.0 (Cản Cũ)' }, { ratio: 0.236, label: '0.236' }, { ratio: 0.382, label: '0.382' },
+            { ratio: 0.5, label: '0.5 (Hộp Vàng)' }, { ratio: 0.618, label: '0.618 (Hộp Vàng)' },
+            { ratio: 0.786, label: '0.786 (Chốt chặn)' }, { ratio: 1, label: '1.0' }
+        ];
 
-        currentFiboData = { entry: entryPrice, sl: sl, tp1: tp1, tp2: tp2 };
+        let html = '';
+        levels.forEach(lvl => {
+            let price = window.fType === 'long' ? h - (diff * lvl.ratio) : l + (diff * lvl.ratio);
+            window.currentFiboData[lvl.ratio] = price;
+            let rowClass = ''; let tag = '';
 
-        let html = `
-            <tr style="background: rgba(252, 213, 53, 0.05); border-left: 3px solid var(--accent-yellow);">
-                <td>Entry (Vùng Hỗ trợ EMA H1)</td><td style="font-weight:bold; color:var(--accent-yellow)">${pFmt(minZone)} - ${pFmt(maxZone)}</td><td><span class="badge bg-yellow">ĐÓN LÕNG TẠI ĐÂY</span></td>
-            </tr>
-            <tr style="background: rgba(246, 70, 93, 0.05); border-left: 3px solid var(--accent-red);">
-                <td>Cắt Lỗ (Bảo vệ vốn)</td><td style="font-weight:bold; color:var(--accent-red)">${pFmt(sl)}</td><td><span class="badge bg-red">SL DƯỚI ĐÁY GẦN</span></td>
-            </tr>
-            <tr style="background: rgba(14, 203, 129, 0.05); border-left: 3px solid var(--accent-green);">
-                <td>Chốt Lời 1 (Fibo 1.618)</td><td style="font-weight:bold; color:var(--accent-green)">${pFmt(tp1)}</td><td><span class="badge bg-green">TP 1 AN TOÀN</span></td>
-            </tr>
-            <tr style="background: rgba(41, 98, 255, 0.05); border-left: 3px solid var(--accent-blue);">
-                <td>Chốt Lời 2 (Fibo 2.618)</td><td style="font-weight:bold; color:var(--accent-blue)">${pFmt(tp2)}</td><td><span class="badge" style="background:var(--accent-blue);color:white">TP 2 MỞ RỘNG</span></td>
-            </tr>
-        `;
-        
-        if (globalH4Trend === 'SIDEWAY') { html = `<tr><td colspan="3" style="text-align:center; color: var(--accent-red); font-weight:bold; padding:20px;">THỊ TRƯỜNG ĐANG ĐI NGANG (SIDEWAY). TUYỆT ĐỐI ĐỨNG NGOÀI!</td></tr>`; if(btnTransfer) btnTransfer.style.display = 'none'; } 
-        else { if(btnTransfer) btnTransfer.style.display = 'block'; }
+            if (lvl.ratio === 0.5 || lvl.ratio === 0.618) {
+                rowClass = 'lvl-golden'; tag = '<span class="badge bg-yellow">ENTRY ZONE</span>';
+            } else if (lvl.ratio === 0.786) {
+                rowClass = 'lvl-danger'; tag = '<span class="badge bg-red">SL ZONE</span>';
+            } else if (lvl.ratio === 0 || lvl.ratio === 0.236) {
+                rowClass = 'lvl-target'; tag = '<span class="badge bg-green">TP ZONE</span>';
+            }
+            html += `<tr class="${rowClass}"><td>${lvl.label}</td><td style="font-weight:bold;">${window.pFmt(price)}</td><td>${tag}</td></tr>`;
+        });
+
+        if(btnTransfer) btnTransfer.style.display = 'block';
         if(body) body.innerHTML = html; 
 
-        let stratClass = "strat-wait"; let stratText = "⏳ Xu hướng chuẩn. Kiên nhẫn chờ giá kéo về vùng màu Vàng.";
-        if (globalH4Trend === 'SIDEWAY') { stratClass = "strat-danger"; stratText = "❌ ĐANG SIDEWAY (EMA ĐAN XEN). BỎ QUA MÃ NÀY!"; } 
-        else if (globalCurrentPrice <= maxZone * 1.005 && globalCurrentPrice >= minZone * 0.995) { stratClass = "strat-alert"; stratText = "🔥 GIÁ ĐANG TRONG VÙNG ENTRY (EMA)! Soi M15 và check Phân kỳ MACD H4 ngay!"; } 
+        window.currentFiboData.entry = (window.currentFiboData[0.5] + window.currentFiboData[0.618]) / 2;
+        window.currentFiboData.sl = sl;
+        window.currentFiboData.tp1 = tp1;
+        window.currentFiboData.tp2 = tp2;
+
+        let stratClass = "strat-wait"; let stratText = "⏳ Xu hướng chuẩn. Kiên nhẫn chờ giá lùi về Hộp Vàng.";
         
-        safeSetClass('actionStrategy', stratClass); safeSetHTML('actionStrategy', stratText);
+        let maxZone = Math.max(window.currentFiboData[0.5], window.currentFiboData[0.618]); 
+        let minZone = Math.min(window.currentFiboData[0.5], window.currentFiboData[0.618]);
+
+        if (window.globalCurrentPrice <= maxZone * 1.005 && window.globalCurrentPrice >= minZone * 0.995) { 
+            stratClass = "strat-alert"; stratText = "🔥 GIÁ ĐANG TRONG HỘP VÀNG! Bật M15 rình nến rút râu ngay!"; 
+        } 
+        
+        window.safeSetClass('actionStrategy', stratClass); window.safeSetHTML('actionStrategy', stratText);
     }
 
-    function transferToRR() {
-        if (!currentFiboData.entry) return;
+    window.transferToRR = function() {
+        if (!window.currentFiboData.entry) return;
 
-        setTradeType(fType); 
-        safeSetValue('entry', pFmt(currentFiboData.entry));
-        safeSetValue('sl', pFmt(currentFiboData.sl));
-        safeSetValue('tp1', pFmt(currentFiboData.tp1));
-        safeSetValue('tp2', pFmt(currentFiboData.tp2));
+        window.setTradeType(window.fType); 
+        window.safeSetValue('entry', window.pFmt(window.currentFiboData.entry));
+        window.safeSetValue('sl', window.pFmt(window.currentFiboData.sl));
+        window.safeSetValue('tp1', window.pFmt(window.currentFiboData.tp1));
+        window.safeSetValue('tp2', window.pFmt(window.currentFiboData.tp2));
         
         const btn = document.getElementById('btnTransfer');
         if(btn) {
@@ -934,11 +969,12 @@
             setTimeout(() => { panel2.classList.remove('highlight-active'); }, 1500);
             panel2.scrollIntoView({behavior: 'smooth'});
         }
-        calculate();
-        showToast("Đã tải dữ liệu xuống máy tính Volume!");
+        window.calculate();
+        window.showToast("Đã tải dữ liệu xuống máy tính Volume!");
     }
 
-    function updateRiskFromPercent() {
+    // --- QUẢN TRỊ RỦI RO % VỐN ---
+    window.updateRiskFromPercent = function() {
         const capitalEl = document.getElementById('walletCapital');
         const percentEl = document.getElementById('riskPercent');
         if(!capitalEl || !percentEl) return;
@@ -947,17 +983,17 @@
         const percent = parseFloat(percentEl.value) || 0;
         
         const riskAmount = (capital * percent) / 100;
-        safeSetValue('risk', riskAmount.toFixed(2));
+        window.safeSetValue('risk', riskAmount.toFixed(2));
         
         const ddWarning = document.getElementById('drawdownWarning');
         if(ddWarning) {
             if(percent >= 10) ddWarning.style.display = 'block';
             else ddWarning.style.display = 'none';
         }
-        calculate();
+        window.calculate();
     }
 
-    function updatePercentFromRisk() {
+    window.updatePercentFromRisk = function() {
         const capitalEl = document.getElementById('walletCapital');
         const riskEl = document.getElementById('risk');
         if(!capitalEl || !riskEl) return;
@@ -967,7 +1003,7 @@
         
         if (capital > 0) {
             const percent = (riskAmount / capital) * 100;
-            safeSetValue('riskPercent', percent.toFixed(2));
+            window.safeSetValue('riskPercent', percent.toFixed(2));
             
             const ddWarning = document.getElementById('drawdownWarning');
             if(ddWarning) {
@@ -975,10 +1011,10 @@
                 else ddWarning.style.display = 'none';
             }
         }
-        calculate();
+        window.calculate();
     }
 
-    function quickSetTP(targetLevel, type) {
+    window.quickSetTP = function(targetLevel, type) {
         const eEl = document.getElementById('entry');
         const sEl = document.getElementById('sl');
         if(!eEl || !sEl) return;
@@ -986,7 +1022,7 @@
         const sl = parseFloat(sEl.value);
         
         if (!entry || !sl || isNaN(entry) || isNaN(sl) || entry === sl) {
-            showToast("Vui lòng nhập/tính Entry và SL hợp lệ trước!", true);
+            window.showToast("Vui lòng nhập/tính Entry và SL hợp lệ trước!", true);
             return;
         }
 
@@ -996,32 +1032,34 @@
         if (type === 'c') { 
             const h = parseFloat(document.getElementById('fiboHigh')?.value);
             const l = parseFloat(document.getElementById('fiboLow')?.value);
-            if (isNaN(h) || isNaN(l)) { showToast("Chưa có dữ liệu Đỉnh/Đáy từ Panel 1.", true); return; }
+            if (isNaN(h) || isNaN(l)) { window.showToast("Chưa có dữ liệu Đỉnh/Đáy từ Panel 1.", true); return; }
             const diff = Math.abs(h - l);
             const buffer = diff * 0.01;
-            newTP = tradeType === 'long' ? h - buffer : l + buffer;
-            showToast(`Đã lùi 1% vùng kẹt hàng cũ (thoát trước đám đông).`);
+            newTP = window.tradeType === 'long' ? h - buffer : l + buffer;
+            window.showToast(`Đã lùi 1% vùng kẹt hàng cũ (thoát trước đám đông).`);
         } 
         else if (type === 1 || type === 2) { 
-            newTP = tradeType === 'long' ? entry + (slDist * type) : entry - (slDist * type);
-            showToast(`Đã cài TP tỷ lệ R:R 1:${type}`);
+            newTP = window.tradeType === 'long' ? entry + (slDist * type) : entry - (slDist * type);
+            window.showToast(`Đã cài TP tỷ lệ R:R 1:${type}`);
         } 
         else { 
             const h = parseFloat(document.getElementById('fiboHigh')?.value);
             const l = parseFloat(document.getElementById('fiboLow')?.value);
-            if (isNaN(h) || isNaN(l)) { showToast("Chưa có dữ liệu Đỉnh/Đáy từ Panel 1 để tính Fibo Extension.", true); return; }
+            if (isNaN(h) || isNaN(l)) { window.showToast("Chưa có dữ liệu Đỉnh/Đáy từ Panel 1 để tính Fibo Extension.", true); return; }
             const diff = Math.abs(h - l);
-            newTP = tradeType === 'long' ? l + (diff * type) : h - (diff * type);
-            showToast(`Đã lấy đỉnh đáy tính Fibo Mở rộng ${type}`);
+            newTP = window.tradeType === 'long' ? l + (diff * type) : h - (diff * type);
+            window.showToast(`Đã lấy đỉnh đáy tính Fibo Mở rộng ${type}`);
         }
 
-        if (targetLevel === 1) { safeSetValue('tp1', pFmt(newTP)); } 
-        else { safeSetValue('tp2', pFmt(newTP)); }
+        if (targetLevel === 1) { window.safeSetValue('tp1', window.pFmt(newTP)); } 
+        else { window.safeSetValue('tp2', window.pFmt(newTP)); }
         
-        calculate();
+        window.calculate();
     }
 
-    function validateChecklist() {
+
+    // --- CHECKLIST & R:R LOGIC CỐT LÕI (BULLETPROOF) ---
+    window.validateChecklist = function() {
         const chk1 = document.getElementById('chkTrend'); 
         const chk2 = document.getElementById('chkSweep'); 
         const chk3 = document.getElementById('chkMACD');
@@ -1030,12 +1068,12 @@
         if(chk1 && chk2 && chk3) ok = chk1.checked && chk2.checked && chk3.checked;
 
         const warning = document.getElementById('checkWarning');
-        if(warning) warning.style.display = (ok && !isSystemLocked) ? 'none' : 'block';
+        if(warning) warning.style.display = (ok && !window.isSystemLocked) ? 'none' : 'block';
         
         const btnExecute = document.getElementById('btnExecuteTrade');
         if(btnExecute) {
-            btnExecute.disabled = (!ok || isSystemLocked);
-            if(ok && !isSystemLocked) {
+            btnExecute.disabled = (!ok || window.isSystemLocked);
+            if(ok && !window.isSystemLocked) {
                 btnExecute.innerHTML = "🚀 BÓP CÒ (PHÓNG LỆNH ENTRY)"; 
                 btnExecute.style.backgroundColor = "var(--accent-yellow)"; 
                 btnExecute.style.color = "#000"; 
@@ -1049,31 +1087,31 @@
         }
     }
 
-    function setTradeType(type) { 
-        tradeType = type; 
+    window.setTradeType = function(type) { 
+        window.tradeType = type; 
         const btnL = document.getElementById('btnLong'); 
         const btnS = document.getElementById('btnShort');
         if(btnL) btnL.classList.toggle('active', type==='long'); 
         if(btnS) btnS.classList.toggle('active', type==='short'); 
-        calculate(); 
+        window.calculate(); 
     }
 
-    function resetResults() {
-        safeSetText('posSize', "0.00"); safeSetText('rrRatio', "1 : 0.00");
-        safeSetText('profit1', "+0.00 USDT"); safeSetText('profit2', "+0.00 USDT");
-        safeSetText('netProfit', "+0.00 USDT"); safeSetClass('netProfit', "res-val text-green");
-        safeSetText('maxLoss', "-0.00 USDT"); safeSetText('slDistancePercent', "0.00%");
-        safeSetText('notionalValue', "0.00 USDT"); safeSetText('totalFee', "-0.00 USDT");
-        safeSetText('breakevenPrice', "0.00"); safeSetText('priceAt1R', "0.00");
-        safeSetText('remindSL', "0.00"); safeSetText('remindTP1', "0.00"); safeSetText('remindTP2', "0.00");
-        safeSetText('displaySLFinal', "-"); safeSetText('displayTP1Final', "-");
+    window.resetResults = function() {
+        window.safeSetText('posSize', "0.00"); window.safeSetText('rrRatio', "1 : 0.00");
+        window.safeSetText('profit1', "+0.00 USDT"); window.safeSetText('profit2', "+0.00 USDT");
+        window.safeSetText('netProfit', "+0.00 USDT"); window.safeSetClass('netProfit', "res-val text-green");
+        window.safeSetText('maxLoss', "-0.00 USDT"); window.safeSetText('slDistancePercent', "0.00%");
+        window.safeSetText('notionalValue', "0.00 USDT"); window.safeSetText('totalFee', "-0.00 USDT");
+        window.safeSetText('breakevenPrice', "0.00"); window.safeSetText('priceAt1R', "0.00");
+        window.safeSetText('remindSL', "0.00"); window.safeSetText('remindTP1', "0.00"); window.safeSetText('remindTP2', "0.00");
+        window.safeSetText('displaySLFinal', "-"); window.safeSetText('displayTP1Final', "-");
     }
 
-    function calculate() {
+    window.calculate = function() {
         const rEl = document.getElementById('risk'); const eEl = document.getElementById('entry'); const slEl = document.getElementById('sl');
         const tp1El = document.getElementById('tp1'); const tp2El = document.getElementById('tp2');
 
-        if(!rEl || !eEl || !slEl) { resetResults(); return; }
+        if(!rEl || !eEl || !slEl) { window.resetResults(); return; }
 
         let r = parseFloat(rEl.value); let e = parseFloat(eEl.value); let sl = parseFloat(slEl.value); 
         let tp1 = tp1El && tp1El.value !== '' ? parseFloat(tp1El.value) : NaN; 
@@ -1081,8 +1119,8 @@
         
         let feeRate = 0.0007; 
         
-        if(!e || !sl || e===sl || !r) { resetResults(); return; }
-        if((tradeType === 'long' && sl >= e) || (tradeType === 'short' && sl <= e)) { resetResults(); safeSetText('rrRatio', "LỖI: SL sai hướng!"); return; }
+        if(!e || !sl || e===sl || !r) { window.resetResults(); return; }
+        if((window.tradeType === 'long' && sl >= e) || (window.tradeType === 'short' && sl <= e)) { window.resetResults(); window.safeSetText('rrRatio', "LỖI: SL sai hướng!"); return; }
 
         let slD = Math.abs(e - sl); 
         let slPercent = (slD / e) * 100;
@@ -1091,19 +1129,19 @@
         let notionalValue = sz * e;
         let fee = notionalValue * feeRate;
         let priceToCoverFee = fee / sz;
-        let breakevenPrice = tradeType === 'long' ? e + priceToCoverFee : e - priceToCoverFee;
+        let breakevenPrice = window.tradeType === 'long' ? e + priceToCoverFee : e - priceToCoverFee;
 
-        safeSetText('posSize', sz.toFixed(4));
-        safeSetText('notionalValue', notionalValue.toFixed(2) + " USDT");
-        safeSetText('totalFee', "-" + pFmt(fee) + " USDT");
-        safeSetText('breakevenPrice', pFmt(breakevenPrice));
+        window.safeSetText('posSize', sz.toFixed(4));
+        window.safeSetText('notionalValue', notionalValue.toFixed(2) + " USDT");
+        window.safeSetText('totalFee', "-" + window.pFmt(fee) + " USDT");
+        window.safeSetText('breakevenPrice', window.pFmt(breakevenPrice));
         
         let slPctStr = slPercent.toFixed(2) + "%";
         if(slPercent > 10) slPctStr += " (Cảnh báo SL quá xa!)";
-        safeSetText('slDistancePercent', slPctStr);
+        window.safeSetText('slDistancePercent', slPctStr);
         
-        let price1R = tradeType === 'long' ? e + slD : e - slD;
-        safeSetText('priceAt1R', pFmt(price1R));
+        let price1R = window.tradeType === 'long' ? e + slD : e - slD;
+        window.safeSetText('priceAt1R', window.pFmt(price1R));
 
         let net1 = 0, net2 = 0;
         let totalNet = 0;
@@ -1111,115 +1149,211 @@
 
         if(!isNaN(tp1)) { 
             let tpD1 = Math.abs(tp1 - e); net1 = (sz * 0.5 * tpD1) - (fee / 2); 
-            safeSetText('profit1', (net1 > 0 ? "+" : "") + pFmt(net1) + " USDT"); 
+            window.safeSetText('profit1', (net1 > 0 ? "+" : "") + window.pFmt(net1) + " USDT"); 
             totalNet += net1; validTP++;
-        } else { safeSetText('profit1', "+0.00 USDT"); }
+        } else { window.safeSetText('profit1', "+0.00 USDT"); }
         
         if(!isNaN(tp2)) { 
             let tpD2 = Math.abs(tp2 - e); net2 = (sz * 0.5 * tpD2) - (fee / 2); 
-            safeSetText('profit2', (net2 > 0 ? "+" : "") + pFmt(net2) + " USDT"); 
+            window.safeSetText('profit2', (net2 > 0 ? "+" : "") + window.pFmt(net2) + " USDT"); 
             totalNet += net2; validTP++;
-        } else { safeSetText('profit2', "+0.00 USDT"); }
+        } else { window.safeSetText('profit2', "+0.00 USDT"); }
         
         if(validTP > 0) {
-            safeSetText('rrRatio', "1 : " + (totalNet / r).toFixed(2));
-            safeSetText('netProfit', (totalNet > 0 ? "+" : "") + pFmt(totalNet) + " USDT");
-            safeSetClass('netProfit', totalNet > 0 ? 'res-val text-green' : 'res-val text-red');
+            window.safeSetText('rrRatio', "1 : " + (totalNet / r).toFixed(2));
+            window.safeSetText('netProfit', (totalNet > 0 ? "+" : "") + window.pFmt(totalNet) + " USDT");
+            window.safeSetClass('netProfit', totalNet > 0 ? 'res-val text-green' : 'res-val text-red');
         } else {
-            safeSetText('rrRatio', "1 : 0.00");
-            safeSetText('netProfit', "+0.00 USDT");
-            safeSetClass('netProfit', "res-val text-green");
+            window.safeSetText('rrRatio', "1 : 0.00");
+            window.safeSetText('netProfit', "+0.00 USDT");
+            window.safeSetClass('netProfit', "res-val text-green");
         }
 
         let maxLoss = r + (fee * 2); 
-        safeSetText('maxLoss', "-" + pFmt(maxLoss) + " USDT");
+        window.safeSetText('maxLoss', "-" + window.pFmt(maxLoss) + " USDT");
         
-        safeSetText('remindSL', pFmt(sl)); safeSetText('remindTP1', isNaN(tp1) ? "..." : pFmt(tp1)); safeSetText('remindTP2', isNaN(tp2) ? "..." : pFmt(tp2));
-        safeSetText('displaySLFinal', pFmt(sl)); safeSetText('displayTP1Final', isNaN(tp1) ? "..." : pFmt(tp1));
+        window.safeSetText('remindSL', window.pFmt(sl)); window.safeSetText('remindTP1', isNaN(tp1) ? "..." : window.pFmt(tp1)); window.safeSetText('remindTP2', isNaN(tp2) ? "..." : window.pFmt(tp2));
+        window.safeSetText('displaySLFinal', window.pFmt(sl)); window.safeSetText('displayTP1Final', isNaN(tp1) ? "..." : window.pFmt(tp1));
     }
 
-    function logToConsole(m, isError=false) { const c = document.getElementById('tradeConsole'); if(c) { c.innerHTML += `<br><span style="color: ${isError?'#F6465D':'#0ECB81'}">> ${m}</span>`; c.scrollTop = c.scrollHeight; } }
+    window.logToConsole = function(m, isError=false) { const c = document.getElementById('tradeConsole'); if(c) { c.innerHTML += `<br><span style="color: ${isError?'#F6465D':'#0ECB81'}">> ${m}</span>`; c.scrollTop = c.scrollHeight; } }
 
-    async function scanRadar(isExpand = false) {
+    // --- RADAR LOGIC ---
+    window.scanRadar = async function(isExpand = false) {
         const btn = document.getElementById('btnRadar'); const grid = document.getElementById('radarGrid'); const exp = document.getElementById('btnExpandRadar');
         if(!btn || !grid) return;
 
-        if (!isExpand) { grid.innerHTML = ''; currentScanLimit = 30; } else { currentScanLimit += 30; }
+        if (!isExpand) { grid.innerHTML = ''; window.currentScanLimit = 30; } else { window.currentScanLimit += 30; }
         btn.innerHTML = `Đang quét cấu trúc EMA...`; btn.disabled = true; 
         if(exp) exp.style.display = 'none';
         try {
-            if (allFuturesPairs.length === 0) {
+            if (window.allFuturesPairs.length === 0) {
                 const tickerResponse = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr'); 
                 const data = await tickerResponse.json();
-                allFuturesPairs = data.filter(i => i.symbol.endsWith('USDT') && !i.symbol.includes('_')).sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume)).map(i => i.symbol);
+                
+                window.allFuturesPairs = data.filter(i => {
+                    if (i.symbol.includes('_')) return false; 
+                    
+                    if (window.radarMode === 'crypto') {
+                        const nonCryptoIndices = ['DEFIUSDT', 'FOOTBALLUSDT', 'BLUEBIRDUSDT', 'BTCDOMUSDT'];
+                        return i.symbol.endsWith('USDT') && !nonCryptoIndices.includes(i.symbol);
+                    } else {
+                        return true;
+                    }
+                })
+                .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+                .map(i => ({ symbol: i.symbol, vol: parseFloat(i.quoteVolume) }));
             }
-            const start = isExpand ? currentScanLimit - 30 : 0; 
-            const symbols = allFuturesPairs.slice(start, currentScanLimit);
+            const start = isExpand ? window.currentScanLimit - 30 : 0; 
+            const symbolsData = window.allFuturesPairs.slice(start, window.currentScanLimit);
             let scanResults = [];
-            for (let i = 0; i < symbols.length; i += 10) {
-                const chunk = symbols.slice(i, i + 10);
-                scanResults = scanResults.concat(await Promise.all(chunk.map(async (symbol) => {
+            for (let i = 0; i < symbolsData.length; i += 10) {
+                const chunk = symbolsData.slice(i, i + 10);
+                
+                btn.innerHTML = `<span class="loader"></span> Đang quét ${start + i + chunk.length} / ${window.currentScanLimit} mã...`;
+
+                const chunkResults = await Promise.all(chunk.map(async (coin) => {
                     try {
-                        const h4K = await getKlinesData(symbol, '4h', 100);
-                        const h1K = await getKlinesData(symbol, '1h', 100);
-                        if (!h4K || h4K.length < 89) return null;
+                        const h4K = await window.getKlinesData(coin.symbol, '4h', 500);
+                        const h1K = await window.getKlinesData(coin.symbol, '1h', 500);
+                        if (!h4K || h4K.length < 200 || !h1K || h1K.length < 200) return null;
+
                         const h4Closes = h4K.map(k => parseFloat(k[4]));
-                        const ema34 = calculateEMA(h4Closes, 34); 
-                        const ema89 = calculateEMA(h4Closes, 89);
+                        const h1Closes = h1K.map(k => parseFloat(k[4]));
+                        const ema200_H4 = window.calculateEMA(h4Closes, 200); 
+                        const ema200_H1 = window.calculateEMA(h1Closes, 200);
                         const p = parseFloat(h1K[h1K.length - 1][4]);
                         
                         let h4T = 'SIDEWAY';
-                        if (p > ema34 && ema34 > ema89) h4T = 'LONG';
-                        if (p < ema34 && ema34 < ema89) h4T = 'SHORT';
+                        if (p > ema200_H4) h4T = 'LONG';
+                        if (p < ema200_H4) h4T = 'SHORT';
 
-                        let inZone = false, prio = 1;
-                        if (h4T !== 'SIDEWAY') {
-                            const h1Closes = h1K.map(k => parseFloat(k[4]));
-                            const ema34_h1 = calculateEMA(h1Closes, 34) || 0;
-                            const ema89_h1 = calculateEMA(h1Closes, 89) || 0; 
-                            let maxZ = Math.max(ema34_h1, ema89_h1); let miZ = Math.min(ema34_h1, ema89_h1); 
-                            let buf = (maxZ - miZ) * 0.2;
-                            inZone = (p <= maxZ + buf) && (p >= miZ - buf);
-                            prio = inZone ? 3 : 2;
+                        let h1T = 'SIDEWAY';
+                        if (p > ema200_H1) h1T = 'LONG';
+                        if (p < ema200_H1) h1T = 'SHORT';
+
+                        let highest = -Infinity; let lowest = Infinity;
+                        const lookback = Math.min(100, h1K.length);
+                        for (let j = h1K.length - lookback; j < h1K.length; j++) {
+                            let h = parseFloat(h1K[j][2]); let l = parseFloat(h1K[j][3]);
+                            if (h > highest) highest = h; if (l < lowest) lowest = l;
                         }
-                        return { symbol, price: p, h4T, inZone, prio };
+
+                        let diff = highest - lowest;
+                        let fibo05 = 0, fibo618 = 0, slLevel = 0;
+                        if (h4T === 'LONG') {
+                            fibo05 = highest - (diff * 0.5); fibo618 = highest - (diff * 0.618); slLevel = highest - (diff * 0.786);
+                        } else {
+                            fibo05 = lowest + (diff * 0.5); fibo618 = lowest + (diff * 0.618); slLevel = lowest + (diff * 0.786);
+                        }
+
+                        let maxZ = Math.max(fibo05, fibo618); let miZ = Math.min(fibo05, fibo618); 
+                        let buf = (maxZ - miZ) * 0.2;
+                        let inZone = (p <= maxZ + buf) && (p >= miZ - buf);
+                        
+                        let isBroken = false;
+                        if (h4T === 'LONG' && p < slLevel) isBroken = true;
+                        if (h4T === 'SHORT' && p > slLevel) isBroken = true;
+
+                        let isConfluence = (h4T === h1T) && h4T !== 'SIDEWAY';
+                        
+                        let prio = 0;
+                        if (isBroken || h4T === 'SIDEWAY') {
+                            prio = 1; 
+                        } else if (!isConfluence) {
+                            prio = 2; 
+                        } else if (isConfluence && !inZone) {
+                            prio = 3; 
+                        } else if (isConfluence && inZone) {
+                            prio = 4; 
+                        }
+
+                        return { symbol: coin.symbol, price: p, h4T, h1T, inZone, prio, vol: coin.vol, isBroken, isConfluence };
                     } catch(e) { return null; }
-                })));
+                }));
+                
+                scanResults = scanResults.concat(chunkResults);
+                await new Promise(r => setTimeout(r, 300));
             }
-            scanResults.sort((a, b) => (b?b.prio:0) - (a?a.prio:0));
+            
+            scanResults.sort((a, b) => {
+                if(!a || !b) return 0;
+                if(b.prio !== a.prio) return b.prio - a.prio;
+                return b.vol - a.vol; 
+            });
+
             if (!isExpand) grid.innerHTML = '';
+            
+            let resultHTML = '';
             scanResults.forEach(d => {
                 if(!d) return; 
                 let sCls = '', sTxt = '', cCls = 'radar-item', bTxt='';
-                if (d.h4T === 'LONG') { sCls = 'status-long'; sTxt = 'TĂNG (UPTREND)'; bTxt = `<span class="badge" style="background:var(--accent-green)">Giá > EMA</span>`; if (d.inZone) { cCls += ' in-zone'; sTxt = '🔥 ĐANG HỒI VỀ EMA'; } } 
-                else if (d.h4T === 'SHORT') { sCls = 'status-short'; sTxt = 'GIẢM (DOWNTREND)'; bTxt = `<span class="badge" style="background:var(--accent-red)">Giá < EMA</span>`; if (d.inZone) { cCls += ' in-zone'; sTxt = '🔥 ĐANG HỒI VỀ EMA'; } } 
-                else { sCls = 'status-mixed'; sTxt = 'ĐI NGANG (SIDEWAY)'; bTxt = `<span class="badge" style="background:var(--text-muted)">BỎ QUA</span>`; }
-                let dp = pFmt(d.price);
-                grid.innerHTML += `<div class="${cCls}" onclick="loadToMainScanner('${d.symbol}')"><div class="radar-header"><span style="color: white;">${d.symbol.replace('USDT','')} <span style="font-size:10px; color:var(--text-muted)">USDT</span></span>${bTxt}</div><div style="font-size:18px; font-weight:bold;">${dp}</div><div class="radar-status ${sCls}">${sTxt}</div></div>`;
+                
+                if (d.prio === 4) {
+                    sCls = d.h4T === 'LONG' ? 'status-long' : 'status-short'; 
+                    sTxt = '🔥 ĐANG IN ZONE (ĐỒNG PHA)'; 
+                    bTxt = `<span class="badge" style="background:var(--accent-yellow); color:black;">RẤT ĐẸP</span>`;
+                    cCls += ' in-zone';
+                } else if (d.prio === 3) {
+                    sCls = d.h4T === 'LONG' ? 'status-long' : 'status-short'; 
+                    sTxt = d.h4T === 'LONG' ? '⏳ TĂNG (Chờ hồi)' : '⏳ GIẢM (Chờ nảy)'; 
+                    bTxt = `<span class="badge" style="background:var(--accent-green)">+ Thuận H4</span>`;
+                } else if (d.prio === 2) {
+                    sCls = 'status-mixed'; 
+                    sTxt = '⚠️ SÓNG HỒI NGƯỢC H4'; 
+                    bTxt = `<span class="badge" style="background:var(--text-muted)">Rủi ro</span>`;
+                } else {
+                    sCls = 'status-mixed'; 
+                    sTxt = '❌ GÃY SÓNG / SIDEWAY'; 
+                    bTxt = `<span class="badge" style="background:var(--accent-red); color:white;">Bỏ qua</span>`;
+                }
+
+                let dp = window.pFmt(d.price);
+                let volStr = window.volFmt(d.vol);
+                
+                let baseSymbol = d.symbol;
+                let quoteSymbol = '';
+                if(d.symbol.endsWith('USDT')) { baseSymbol = d.symbol.replace('USDT',''); quoteSymbol = 'USDT'; }
+                else if(d.symbol.endsWith('USDC')) { baseSymbol = d.symbol.replace('USDC',''); quoteSymbol = 'USDC'; }
+                else if(d.symbol.endsWith('BUSD')) { baseSymbol = d.symbol.replace('BUSD',''); quoteSymbol = 'BUSD'; }
+
+                resultHTML += `<div class="${cCls}" onclick="window.loadToMainScanner('${d.symbol}')">
+                    <div class="radar-header">
+                        <span style="color: white;">${baseSymbol} <br><span style="font-size:10px; font-weight:normal; color:var(--text-muted)">${quoteSymbol} - Vol: $${volStr}</span></span>
+                        ${bTxt}
+                    </div>
+                    <div style="font-size:18px; font-weight:bold; margin-top:5px;">${dp}</div>
+                    <div class="radar-status ${sCls}">${sTxt}</div>
+                </div>`;
             });
-            if(currentScanLimit < allFuturesPairs.length && exp) exp.style.display = 'inline-block';
-        } catch (e) { grid.innerHTML = `<div style="grid-column: 1/-1; color: var(--accent-red); text-align: center;">Lỗi mạng. Thử lại sau.</div>`; } 
-        finally { btn.innerHTML = `📡 Khởi Động Radar (Top 30)`; btn.disabled = false; }
+            grid.insertAdjacentHTML('beforeend', resultHTML);
+            
+            if(window.currentScanLimit < window.allFuturesPairs.length && exp) exp.style.display = 'inline-block';
+        } catch (e) { 
+            grid.innerHTML = `<div style="grid-column: 1/-1; color: var(--accent-red); text-align: center;">Lỗi tải dữ liệu. Có thể do quét quá nhanh. Xin vui lòng thử lại sau 1 phút.</div>`; 
+        } 
+        finally { btn.innerHTML = `📡 Quét Lại Radar`; btn.disabled = false; }
     }
 
-    function expandRadar() { scanRadar(true); }
+    window.expandRadar = function() { window.scanRadar(true); }
 
-    function loadToMainScanner(sym) { 
-        safeSetValue('symbolInput', sym);
-        syncSymbol();
+    window.loadToMainScanner = function(sym) { 
+        window.safeSetValue('symbolInput', sym);
+        window.syncSymbol();
         const symInp = document.getElementById('symbolInput');
         if(symInp) symInp.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-        setTimeout(scanMultiTimeframe, 500); 
+        setTimeout(window.scanMultiTimeframe, 500); 
     }
 
-    async function placeBinanceOrder() {
-        const apiKeyEl = document.getElementById('apiKey'); const apiSecretEl = document.getElementById('apiSecret');
+    // --- BỆ PHÓNG CHỈ ENTRY ---
+    window.placeBinanceOrder = async function() {
+        const apiKeyEl = document.getElementById('binanceApiKey'); const apiSecretEl = document.getElementById('binanceApiSecret');
         const symbolEl = document.getElementById('symbolInput'); const sizeEl = document.getElementById('posSize'); const entryEl = document.getElementById('entry');
 
         if(!apiKeyEl || !apiSecretEl || !symbolEl || !sizeEl || !entryEl) return;
 
         const binanceApiKey = apiKeyEl.value; const apiSecret = apiSecretEl.value;
-        if (!binanceApiKey || !apiSecret) { showToast("Vui lòng nhập API Key để đặt lệnh!", true); return; }
+        if (!binanceApiKey || !apiSecret) { window.showToast("Vui lòng nhập API Key để đặt lệnh!", true); return; }
         
         const symbol = symbolEl.value.trim().toUpperCase(); const sizeStr = sizeEl.innerText; const entryStr = entryEl.value;
         if (sizeStr === "0.00" || !entryStr) return;
@@ -1227,7 +1361,7 @@
         const btnExecute = document.getElementById('btnExecuteTrade'); 
         if(btnExecute) { btnExecute.disabled = true; btnExecute.innerHTML = "Đang phóng lệnh..."; }
         
-        safeSetHTML('tradeConsole', "> Bắt đầu gửi lệnh Entry...");
+        window.safeSetHTML('tradeConsole', "> Bắt đầu gửi lệnh Entry...");
         const manualReminder = document.getElementById('manualReminder');
         if(manualReminder) manualReminder.style.display = 'none'; 
         
@@ -1246,11 +1380,11 @@
             }
 
             let qtyTotalStr = formatByStep(sizeStr, stepSize); let priceEntry = formatByStep(entryStr, tickSize);
-            let side = tradeType === 'long' ? 'BUY' : 'SELL'; 
+            let side = window.tradeType === 'long' ? 'BUY' : 'SELL'; 
             
             let posMode = document.getElementById('positionMode')?.value || 'HEDGE'; 
             let apiOrderType = document.getElementById('apiOrderType')?.value || 'MARKET';
-            let posSideParam = posMode === 'HEDGE' ? `&positionSide=${tradeType==='long'?'LONG':'SHORT'}` : '';
+            let posSideParam = posMode === 'HEDGE' ? `&positionSide=${window.tradeType==='long'?'LONG':'SHORT'}` : '';
 
             const timeRes = await fetch('https://fapi.binance.com/fapi/v1/time'); const serverTime = (await timeRes.json()).serverTime;
             let query = `symbol=${symbol}&side=${side}${posSideParam}&quantity=${qtyTotalStr}&recvWindow=60000`;
@@ -1263,20 +1397,20 @@
             const data = await res.json();
             
             if (res.ok) {
-                logToConsole(`✅ Khớp ENTRY (${apiOrderType}) - ID: ${data.orderId}`);
+                window.logToConsole(`✅ Khớp ENTRY (${apiOrderType}) - ID: ${data.orderId}`);
                 if(manualReminder) manualReminder.style.display = 'block';
-                showToast("Lệnh ENTRY đã đẩy lên sàn thành công!");
-            } else logToConsole(`❌ Từ chối ENTRY: ${data.msg}`, true);
-        } catch (e) { logToConsole(`❌ LỖI HỆ THỐNG: ${e.message}`, true); showToast("Có lỗi xảy ra khi đẩy lệnh", true); } 
+                window.showToast("Lệnh ENTRY đã đẩy lên sàn thành công!");
+            } else window.logToConsole(`❌ Từ chối ENTRY: ${data.msg}`, true);
+        } catch (e) { window.logToConsole(`❌ LỖI HỆ THỐNG: ${e.message}`, true); window.showToast("Có lỗi xảy ra khi đẩy lệnh", true); } 
         finally { if(btnExecute) { btnExecute.disabled = false; btnExecute.innerHTML = "🚀 BÓP CÒ (PHÓNG LỆNH ENTRY)"; } }
     }
 
-    async function syncBinanceAccount() {
-        const apiKeyEl = document.getElementById('apiKey'); const apiSecretEl = document.getElementById('apiSecret');
+    window.syncBinanceAccount = async function() {
+        const apiKeyEl = document.getElementById('binanceApiKey'); const apiSecretEl = document.getElementById('binanceApiSecret');
         if(!apiKeyEl || !apiSecretEl) return;
 
         const binanceApiKey = apiKeyEl.value.trim(); const apiSecret = apiSecretEl.value.trim();
-        if (!binanceApiKey || !apiSecret) { showToast("Vui lòng điền API Key ở Panel 3!", true); return; }
+        if (!binanceApiKey || !apiSecret) { window.showToast("Vui lòng điền API Key ở Panel 3!", true); return; }
         
         const btn = document.getElementById('btnSyncAcc'); 
         if(btn) { btn.innerHTML = "Đang đồng bộ..."; btn.disabled = true; }
@@ -1290,9 +1424,9 @@
                 const usdt = data.assets.find(a => a.asset === 'USDT');
                 if (usdt) {
                     let balance = parseFloat(usdt.availableBalance);
-                    safeSetHTML('walletBalance', `${balance.toFixed(2)} <span style="font-size:16px; color:white;">USDT</span>`);
-                    safeSetValue('walletCapital', balance.toFixed(2));
-                    updateRiskFromPercent();
+                    window.safeSetHTML('walletBalance', `${balance.toFixed(2)} <span style="font-size:16px; color:white;">USDT</span>`);
+                    window.safeSetValue('walletCapital', balance.toFixed(2));
+                    window.updateRiskFromPercent();
                     const p2 = document.getElementById('panel2');
                     if(p2) { p2.classList.add('highlight-active'); setTimeout(() => p2.classList.remove('highlight-active'), 1500); }
                 }
@@ -1309,47 +1443,47 @@
                         });
                     }
                 }
-                showToast("Đồng bộ số dư ví và vị thế thành công!");
+                window.showToast("Đồng bộ số dư ví và vị thế thành công!");
             } else throw new Error(data.msg);
-        } catch (e) { safeSetHTML('positionsBody', `<tr><td colspan="5" class="text-red">Lỗi: ${e.message}</td></tr>`); showToast("Lỗi đồng bộ ví", true); } 
+        } catch (e) { window.safeSetHTML('positionsBody', `<tr><td colspan="5" class="text-red">Lỗi: ${e.message}</td></tr>`); window.showToast("Lỗi đồng bộ ví", true); } 
         finally { if(btn) { btn.innerHTML = "🔄 Đồng Bộ Ví"; btn.disabled = false; } }
     }
 
-    function addWatchlist() {
+    window.addWatchlist = function() {
         const inp = document.getElementById('watchInput'); 
         if(!inp) return;
         const sym = inp.value.trim().toUpperCase();
-        if(sym && !watchlistArr.includes(sym)) { watchlistArr.push(sym); renderWatchlist(); inp.value = ''; }
+        if(sym && !window.watchlistArr.includes(sym)) { window.watchlistArr.push(sym); window.renderWatchlist(); inp.value = ''; }
     }
-    function removeWatchlist(sym) { watchlistArr = watchlistArr.filter(s => s !== sym); renderWatchlist(); }
-    function renderWatchlist() {
+    window.removeWatchlist = function(sym) { window.watchlistArr = window.watchlistArr.filter(s => s !== sym); window.renderWatchlist(); }
+    window.renderWatchlist = function() {
         const tb = document.getElementById('watchBody');
         if(!tb) return;
-        if(watchlistArr.length === 0) { tb.innerHTML = '<tr><td colspan="2" style="text-align:center; font-style:italic;">Chưa có mã nào...</td></tr>'; return; }
+        if(window.watchlistArr.length === 0) { tb.innerHTML = '<tr><td colspan="2" style="text-align:center; font-style:italic;">Chưa có mã nào...</td></tr>'; return; }
         tb.innerHTML = '';
-        watchlistArr.forEach(s => tb.innerHTML += `<tr><td style="font-weight:bold; color:var(--accent-yellow); cursor:pointer;" onclick="loadToMainScanner('${s}')">${s}</td><td><button class="action-btn" style="width:auto; padding:5px 10px; margin:0;" onclick="removeWatchlist('${s}')">Xóa</button></td></tr>`);
+        window.watchlistArr.forEach(s => tb.innerHTML += `<tr><td style="font-weight:bold; color:var(--accent-yellow); cursor:pointer;" onclick="window.loadToMainScanner('${s}')">${s}</td><td><button class="action-btn" style="width:auto; padding:5px 10px; margin:0;" onclick="window.removeWatchlist('${s}')">Xóa</button></td></tr>`);
     }
 
-    async function analyzeWatchlist() {
-        if(watchlistArr.length === 0) { showToast("Danh sách đang trống, hãy thêm mã coin vào trước!", true); return; }
+    window.analyzeWatchlist = async function() {
+        if(window.watchlistArr.length === 0) { window.showToast("Danh sách đang trống, hãy thêm mã coin vào trước!", true); return; }
         const btn = document.getElementById('btnSoiList'); const wlPanel = document.getElementById('watchlistAIPanel');
         if(btn) { btn.disabled = true; btn.innerHTML = '...'; }
         if(wlPanel) { wlPanel.style.display = 'block'; wlPanel.innerHTML = '<span class="loader"></span> Bác Jét đang lườm danh sách của bạn...'; }
 
-        const listString = watchlistArr.join(", ");
-        const payload = { contents: [{ parts: [{ text: `Danh sách theo dõi của tôi có các mã sau: ${listString}. Đánh giá thật ngắn gọn (1 dòng) dòng tiền hoặc mức độ rủi ro chung của các mã này.` }] }], systemInstruction: { parts: [{ text: "Bạn là Bác Jét. Đánh giá sắc bén, ngắn gọn, thẳng thắn." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const listString = window.watchlistArr.join(", ");
+        const payload = { contents: [{ parts: [{ text: `Danh sách theo dõi của tôi có các mã sau: ${listString}. Đánh giá thật ngắn gọn (1 dòng) xu hướng dòng tiền của các mã này dựa trên phương pháp EMA 200.` }] }], systemInstruction: { parts: [{ text: "Bạn là chuyên gia phân tích kỹ thuật. Đánh giá sắc bén, ngắn gọn, thẳng thắn." }] } };
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
 
         try {
-            const data = await fetchWithRetry(url, payload);
+            const data = await window.fetchWithRetry(url, payload);
             const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if(text) { if(wlPanel) wlPanel.innerHTML = `<strong style="color:var(--accent-yellow);">Bác Jét phán:</strong> ${text}`; } 
+            if(text) { if(wlPanel) wlPanel.innerHTML = `<strong style="color:var(--accent-yellow);">AI Phán:</strong> ${text}`; } 
             else { if(wlPanel) wlPanel.innerHTML = 'Lỗi định dạng phản hồi.'; }
         } catch(e) { if(wlPanel) wlPanel.innerHTML = 'Lỗi kết nối AI. Mạng nghẽn.'; } 
         finally { if(btn) { btn.innerHTML = '✨ AI Phân Tích DS'; btn.disabled = false; } }
     }
 
-    async function fetchWithRetry(url, payload) {
+    window.fetchWithRetry = async function(url, payload) {
         const delays = [1000, 2000, 4000, 8000, 16000];
         for (let i = 0; i <= 5; i++) {
             try {
@@ -1361,7 +1495,7 @@
         }
     }
 
-    async function analyzeTradeWithAI() {
+    window.analyzeTradeWithAI = async function() {
         const asset = document.getElementById('symbolInput')?.value || 'Coin';
         const entry = document.getElementById('entry')?.value;
         const sl = document.getElementById('sl')?.value;
@@ -1373,33 +1507,33 @@
         const chkMACD = document.getElementById('chkMACD')?.checked;
 
         if (!entry || document.getElementById('posSize').innerText === "0.00") { 
-            showToast("Hãy Quét Đa Tầng và điền Thông số kỹ thuật (Entry) trước khi gọi AI.", true); return; 
+            window.showToast("Hãy Quét Đa Tầng và điền Thông số kỹ thuật (Entry) trước khi gọi AI.", true); return; 
         }
 
         const aiBtn = document.getElementById('btnAI'); const aiBox = document.getElementById('aiResponseBox'); const aiContent = document.getElementById('aiContent');
         if(aiBtn) { aiBtn.innerHTML = '<span class="loader"></span> Đang soi lệnh...'; aiBtn.disabled = true; }
         if(aiBox) aiBox.style.display = 'block';
-        if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang đối chiếu với Nguyên tắc Chốt Lời và Scale-out...</span>';
+        if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang đối chiếu với Nguyên tắc EMA 200 và Scale-out...</span>';
 
         const rrText = document.getElementById('rrRatio')?.innerText || '';
         const riskVal = document.getElementById('risk')?.value || '';
         const slDist = document.getElementById('slDistancePercent')?.innerText || '';
 
-        const promptText = `Bối cảnh: H4 đang là ${globalH4State}.
-Lệnh của tôi: ${tradeType.toUpperCase()} con ${asset}. Entry: ${entry}, SL: ${sl}, TP1: ${tp1}, TP2: ${tp2}. Tỷ lệ R:R: ${rrText}.
+        const promptText = `Bối cảnh: H4 đang là ${window.globalH4State}.
+Lệnh của tôi: ${window.tradeType.toUpperCase()} con ${asset}. Entry: ${entry}, SL: ${sl}, TP1: ${tp1}, TP2: ${tp2}. Tỷ lệ R:R: ${rrText}.
 Rủi ro: ${riskVal} USDT. Khoảng cách SL: ${slDist}.
-Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Chưa'}, MACD H4 không phân kỳ: ${chkMACD?'Ok':'Chưa'}.
+Kỷ luật: Thuận Trend EMA200: ${chkTrend?'Ok':'Chưa'}, Chạm Hộp Vàng Fibo: ${chkSweep?'Ok':'Chưa'}, Phân kỳ MACD: ${chkMACD?'Không bị':'Bị phân kỳ'}.
 
-Đóng vai Bác Jét. Đánh giá lệnh này theo chuẩn Trend Following, Scale-out 50/50 và Quản trị vốn 2% của Elder. Nếu SL quá xa hoặc đánh ngược xu hướng mà vẫn cố vào lệnh thì chửi gắt vào. Chốt 1 câu triết lý quản trị vốn.`;
+Đóng vai chuyên gia giao dịch. Đánh giá lệnh này theo chuẩn phương pháp Thuận Trend EMA 200 và Fibonacci, kết hợp Scale-out 50/50 và Quản trị vốn 2% của Alexander Elder. Nếu đánh ngược xu hướng mà vẫn cố vào lệnh thì chửi gắt vào. Chốt 1 câu triết lý quản trị vốn.`;
 
-        const payload = { contents: [{ parts: [{ text: promptText }] }], systemInstruction: { parts: [{ text: "Nghiêm khắc, lạnh lùng, am hiểu phương pháp Sonic R / EMA 34/89 và Quản trị vốn." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const payload = { contents: [{ parts: [{ text: promptText }] }], systemInstruction: { parts: [{ text: "Nghiêm khắc, lạnh lùng, am hiểu phương pháp Thuận Trend EMA 200 và Fibonacci." }] } };
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
 
         try {
-            const data = await fetchWithRetry(url, payload);
+            const data = await window.fetchWithRetry(url, payload);
             if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                lastAIResponseText = data.candidates[0].content.parts[0].text;
-                if(aiContent) aiContent.innerHTML = lastAIResponseText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-yellow);">$1</strong>').replace(/\n/g, '<br>');
+                window.lastAIResponseText = data.candidates[0].content.parts[0].text;
+                if(aiContent) aiContent.innerHTML = window.lastAIResponseText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-yellow);">$1</strong>').replace(/\n/g, '<br>');
                 const ttsBtn = document.getElementById('btnTTS');
                 if(ttsBtn) ttsBtn.style.display = 'inline-block';
             } else throw new Error();
@@ -1409,49 +1543,49 @@ Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Ch�
         finally { if(aiBtn) { aiBtn.innerHTML = '✨ Phân Tích Lệnh'; aiBtn.disabled = false; } }
     }
 
-    async function getDailyMindset() {
+    window.getDailyMindset = async function() {
         const btn = document.getElementById('btnMindset'); const aiBox = document.getElementById('aiResponseBox'); const aiContent = document.getElementById('aiContent');
         if(btn) { btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Đang tải...'; }
         if(aiBox) aiBox.style.display = 'block';
         if(aiContent) aiContent.innerHTML = '<span style="color: var(--text-muted);">Đang lục lọi bí kíp...</span>';
         
-        const payload = { contents: [{ parts: [{ text: "Trích xuất 1 lời khuyên thực chiến sắc bén nhất về Quản trị vốn 2% hoặc Tâm lý chốt lời từ 'Jét Si Chân Kinh' để tẩy não tôi." }] }], systemInstruction: { parts: [{ text: "Ngắn gọn, 2 câu. Thấm thía." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const payload = { contents: [{ parts: [{ text: "Trích xuất 1 lời khuyên thực chiến sắc bén nhất về Quản trị vốn 2% hoặc Tâm lý theo trend EMA200 để tẩy não tôi." }] }], systemInstruction: { parts: [{ text: "Ngắn gọn, 2 câu. Thấm thía." }] } };
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
         try {
-            const data = await fetchWithRetry(url, payload);
+            const data = await window.fetchWithRetry(url, payload);
             if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                lastAIResponseText = data.candidates[0].content.parts[0].text;
-                if(aiContent) aiContent.innerHTML = `<strong style="color:var(--accent-purple);">✨ CHÂM NGÔN:</strong><br><br>${lastAIResponseText.replace(/\n/g, '<br>')}`;
+                window.lastAIResponseText = data.candidates[0].content.parts[0].text;
+                if(aiContent) aiContent.innerHTML = `<strong style="color:var(--accent-purple);">✨ CHÂM NGÔN:</strong><br><br>${window.lastAIResponseText.replace(/\n/g, '<br>')}`;
                 const ttsBtn = document.getElementById('btnTTS');
                 if(ttsBtn) ttsBtn.style.display = 'inline-block';
             }
         } catch(e) {} finally { if(btn) { btn.innerHTML = '✨ Đọc Châm Ngôn'; btn.disabled = false; } }
     }
 
-    async function diagnosePsychology() {
+    window.diagnosePsychology = async function() {
         const inpEl = document.getElementById('psychoInput');
         if(!inpEl) return;
-        const inp = inpEl.value.trim(); if(!inp) { showToast("Gõ nỗi đau của bạn vào ô trống đi!", true); return; }
+        const inp = inpEl.value.trim(); if(!inp) { window.showToast("Gõ nỗi đau của bạn vào ô trống đi!", true); return; }
         
         const btn = document.getElementById('btnPsycho'); const aiBox = document.getElementById('aiResponseBox'); const aiContent = document.getElementById('aiContent');
         if(btn) { btn.disabled = true; btn.innerHTML = '🚑 Đang khám...'; }
         if(aiBox) aiBox.style.display = 'block';
         if(aiContent) aiContent.innerHTML = '<span style="color: var(--accent-red);">🚑 Đang chẩn bệnh...</span>';
         
-        const payload = { contents: [{ parts: [{ text: `Tâm lý hiện tại: "${inp}". Khám bệnh và chửi thẳng mặt để tôi tỉnh ngộ.` }] }], systemInstruction: { parts: [{ text: "Bác Jét, nghiêm khắc, đánh vào tâm lý đám đông." }] } };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const payload = { contents: [{ parts: [{ text: `Tâm lý hiện tại: "${inp}". Khám bệnh và chửi thẳng mặt để tôi tỉnh ngộ.` }] }], systemInstruction: { parts: [{ text: "Chuyên gia tâm lý giao dịch, nghiêm khắc, đánh vào tâm lý đám đông." }] } };
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
         try {
-            const data = await fetchWithRetry(url, payload);
+            const data = await window.fetchWithRetry(url, payload);
             if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                lastAIResponseText = data.candidates[0].content.parts[0].text;
-                if(aiContent) aiContent.innerHTML = `<strong style="color:var(--accent-red);">🚑 BỆNH ÁN:</strong><br><br>${lastAIResponseText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-yellow);">$1</strong>').replace(/\n/g, '<br>')}`;
+                window.lastAIResponseText = data.candidates[0].content.parts[0].text;
+                if(aiContent) aiContent.innerHTML = `<strong style="color:var(--accent-red);">🚑 BỆNH ÁN:</strong><br><br>${window.lastAIResponseText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--accent-yellow);">$1</strong>').replace(/\n/g, '<br>')}`;
                 const ttsBtn = document.getElementById('btnTTS');
                 if(ttsBtn) ttsBtn.style.display = 'inline-block';
             }
         } catch(e) {} finally { if(btn) { btn.innerHTML = '🚑 Khám Bệnh'; btn.disabled = false; } }
     }
 
-    function playPCM16Wav(base64Data, sampleRate) {
+    window.playPCM16Wav = function(base64Data, sampleRate) {
         const binaryString = window.atob(base64Data); const len = binaryString.length; const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
         const buffer = bytes.buffer; const wavHeader = new ArrayBuffer(44); const view = new DataView(wavHeader);
@@ -1464,18 +1598,18 @@ Kỷ luật: Trend: ${chkTrend?'Ok':'Chưa'}, Pullback EMA: ${chkSweep?'Ok':'Ch�
         const blob = new Blob([wavBytes], { type: 'audio/wav' }); const url = URL.createObjectURL(blob); const audio = new Audio(url); audio.play();
     }
 
-    async function speakAIResponse() {
-        if(!lastAIResponseText) return; const btn = document.getElementById('btnTTS'); 
+    window.speakAIResponse = async function() {
+        if(!window.lastAIResponseText) return; const btn = document.getElementById('btnTTS'); 
         if(!btn) return; const origin = btn.innerHTML;
         btn.innerHTML = '<span class="loader"></span> Đang nạp giọng...'; btn.disabled = true;
-        const payload = { contents: [{ parts: [{ text: `Đọc với giọng điệu nghiêm khắc: ${lastAIResponseText.replace(/\*/g, '')}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, model: "gemini-2.5-flash-preview-tts" };
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+        const payload = { contents: [{ parts: [{ text: `Đọc với giọng điệu nghiêm khắc: ${window.lastAIResponseText.replace(/\*/g, '')}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, model: "gemini-2.5-flash-preview-tts" };
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${geminiApiKey}`;
         try {
-            const data = await fetchWithRetry(url, payload);
+            const data = await window.fetchWithRetry(url, payload);
             const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
             if (inlineData && inlineData.data) {
                 let sr = 24000; const rm = inlineData.mimeType.match(/rate=(\d+)/); if (rm) sr = parseInt(rm[1], 10);
-                playPCM16Wav(inlineData.data, sr);
+                window.playPCM16Wav(inlineData.data, sr);
             }
         } catch(e) {} finally { btn.innerHTML = origin; btn.disabled = false; }
     }
