@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BingX Optimal Position Size</title>
+    <style>
+        :root {
+            --bg-color: #12161c;
+            --panel-bg: #1e2329;
+            --text-color: #eaecef;
+            --label-color: #848e9c;
+            --primary: #fcd535;
+            --primary-hover: #e0bd2e;
+            --danger: #f6465d;
+            --success: #0ecb81;
+            --border: #2b3139;
+            --info: #2ba6f6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: var(--text-color);
+            font-size: 22px;
+            margin-bottom: 25px;
+        }
+        .form-group { margin-bottom: 15px; }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--label-color);
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .row { display: flex; gap: 15px; }
+        .row .form-group { flex: 1; }
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: #1e2329;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: var(--primary-hover); }
+        .results {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        .result-value { font-weight: bold; }
+        .text-long { color: var(--success); }
+        .text-short { color: var(--danger); }
+        .text-leverage { color: var(--info); font-size: 18px; }
+        .note {
+            color: var(--label-color);
+            font-size: 12px;
+            margin-top: 15px;
+            text-align: justify;
+            line-height: 1.5;
+            background: rgba(132, 142, 156, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Tối ưu Khối lượng & Đòn bẩy BingX</h2>
+    
+    <div class="row">
+        <div class="form-group">
+            <label>Tổng vốn (USDT)</label>
+            <input type="number" id="capital" placeholder="Ví dụ: 1000" value="1000">
+        </div>
+        <div class="form-group">
+            <label>Rủi ro tối đa (%)</label>
+            <input type="number" id="riskPercent" placeholder="Ví dụ: 2" value="2" step="0.1">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Loại lệnh mở (Entry)</label>
+        <select id="entryType">
+            <option value="0.0002">Lệnh Limit (Maker fee: 0.02%)</option>
+            <option value="0.0005">Lệnh Market (Taker fee: 0.05%)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Giá Entry</label>
+        <input type="number" id="entry" placeholder="Giá vào lệnh" step="any">
+    </div>
+
+    <div class="row">
+        <div class="form-group">
+            <label>Giá Stop Loss (SL)</label>
+            <input type="number" id="sl" placeholder="Giá cắt lỗ" step="any">
+        </div>
+        <div class="form-group">
+            <label>Giá Take Profit (TP)</label>
+            <input type="number" id="tp" placeholder="Giá chốt lời" step="any">
+        </div>
+    </div>
+
+    <button onclick="calculate()">Tính toán Điểm Tối Ưu</button>
+
+    <div class="results" id="results" style="display: none;">
+        <div class="result-item">
+            <span>Loại lệnh:</span>
+            <span id="resType" class="result-value"></span>
+        </div>
+        <div class="result-item">
+            <span>Số tiền Rủi ro (Risk):</span>
+            <span id="resRiskAmount" class="result-value"></span>
+        </div>
+        <div class="result-item" style="background: rgba(43, 166, 246, 0.1); padding: 8px; border-radius: 4px;">
+            <span>Đòn bẩy Tối ưu (An toàn):</span>
+            <span id="resLeverage" class="result-value text-leverage"></span>
+        </div>
+        <div class="result-item">
+            <span>Khối lượng (Coin):</span>
+            <span id="resSizeCoin" class="result-value" style="color: var(--primary); font-size: 18px;"></span>
+        </div>
+        <div class="result-item">
+            <span>Khối lượng (USDT):</span>
+            <span id="resSizeUsdt" class="result-value"></span>
+        </div>
+        <div class="result-item">
+            <span>Tiền Ký quỹ (Margin) yêu cầu:</span>
+            <span id="resMargin" class="result-value" style="color: var(--primary);"></span>
+        </div>
+        <div class="result-item">
+            <span>Tổng phí giao dịch ước tính:</span>
+            <span id="resFees" class="result-value"></span>
+        </div>
+        <div class="result-item" style="border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px;">
+            <span>Lợi nhuận ước tính (TP):</span>
+            <span id="resProfit" class="result-value text-long"></span>
+        </div>
+        <div class="result-item">
+            <span>Tỷ lệ Risk/Reward (R:R):</span>
+            <span id="resRR" class="result-value"></span>
+        </div>
+
+        <div class="note">
+            * <b>Giải thích:</b> Mức đòn bẩy hiển thị ở trên là mức đòn bẩy lớn nhất (đã làm tròn) để số tiền Ký quỹ (Margin) của bạn được tối ưu nhỏ nhất, nhưng vẫn đảm bảo lệnh chạm Stop loss <b>trước khi</b> chạm giá Thanh lý của sàn. Đóng lệnh SL luôn được tính theo mức phí Taker 0.05%.
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculate() {
+        const capital = parseFloat(document.getElementById('capital').value);
+        const riskPercent = parseFloat(document.getElementById('riskPercent').value);
+        const feeOpen = parseFloat(document.getElementById('entryType').value);
+        const feeClose = 0.0005; // SL/TP là lệnh Taker
+        const entry = parseFloat(document.getElementById('entry').value);
+        const sl = parseFloat(document.getElementById('sl').value);
+        const tp = parseFloat(document.getElementById('tp').value);
+
+        if (!capital || !riskPercent || !entry || !sl) {
+            alert("Vui lòng điền đầy đủ Vốn, Rủi ro, Entry và Stop Loss.");
+            return;
+        }
+        if (entry === sl) {
+            alert("Giá Entry không được trùng với giá Stop Loss.");
+            return;
+        }
+
+        // 1. Xác định vị thế
+        const isLong = entry > sl;
+        const resTypeEl = document.getElementById('resType');
+        resTypeEl.innerText = isLong ? "LONG 🟢" : "SHORT 🔴";
+        resTypeEl.className = "result-value " + (isLong ? "text-long" : "text-short");
+
+        // 2. Tính số tiền rủi ro
+        const riskAmount = capital * (riskPercent / 100);
+
+        // 3. Tính toán Khối lượng (Size) chính xác bao gồm phí
+        const priceDistance = Math.abs(entry - sl);
+        const percentDistance = priceDistance / entry;
+        const feeCostPerCoin = (entry * feeOpen) + (sl * feeClose);
+        
+        const sizeCoin = riskAmount / (priceDistance + feeCostPerCoin);
+        const sizeUsdt = sizeCoin * entry;
+
+        // 4. Tính ĐÒN BẨY TỐI ƯU (Optimal Leverage)
+        // Trong Isolated, Margin = Risk + Lượng ký quỹ duy trì (Maintenance Margin ~ 0.5%) + Phí
+        // Công thức chống cháy trước SL: Leverage <= 1 / (% Khoảng cách SL + % Tổng Phí + % Margin duy trì)
+        const maintenanceMarginRate = 0.005; // 0.5% buffer chuẩn của đa số sàn
+        const totalFeeRate = feeOpen + feeClose;
+        
+        // Đòn bẩy lý thuyết tối đa
+        let maxSafeLeverage = Math.floor(1 / (percentDistance + totalFeeRate + maintenanceMarginRate));
+        
+        // Giới hạn đòn bẩy thông thường của BingX (125x hoặc 150x, ta set max 150)
+        if (maxSafeLeverage > 150) maxSafeLeverage = 150;
+        if (maxSafeLeverage < 1) maxSafeLeverage = 1;
+
+        // 5. Tính Ký quỹ (Margin) dựa trên Đòn bẩy tối ưu
+        const marginRequired = sizeUsdt / maxSafeLeverage;
+        const totalFeesSL = sizeCoin * feeCostPerCoin;
+
+        // 6. Cập nhật Giao diện
+        document.getElementById('resRiskAmount').innerText = riskAmount.toFixed(2) + " USDT";
+        document.getElementById('resLeverage').innerText = maxSafeLeverage + "x";
+        
+        let sizeCoinFormatted = sizeCoin < 1 ? sizeCoin.toFixed(4) : sizeCoin.toFixed(2);
+        document.getElementById('resSizeCoin').innerText = sizeCoinFormatted;
+        
+        document.getElementById('resSizeUsdt').innerText = sizeUsdt.toFixed(2) + " USDT";
+        document.getElementById('resMargin').innerText = marginRequired.toFixed(2) + " USDT";
+        document.getElementById('resFees').innerText = totalFeesSL.toFixed(2) + " USDT";
+
+        // 7. Tính Toán TP & RR
+        const resProfitEl = document.getElementById('resProfit');
+        const resRREl = document.getElementById('resRR');
+        
+        if (tp) {
+            if ((isLong && tp <= entry) || (!isLong && tp >= entry)) {
+                resProfitEl.innerText = "Lỗi giá TP";
+                resProfitEl.className = "result-value text-short";
+                resRREl.innerText = "N/A";
+            } else {
+                const tpDistance = Math.abs(tp - entry);
+                const feeCostTPPerCoin = (entry * feeOpen) + (tp * feeClose);
+                const totalFeesTP = sizeCoin * feeCostTPPerCoin;
+                const expectedProfit = (sizeCoin * tpDistance) - totalFeesTP;
+                const rrRatio = expectedProfit / riskAmount;
+
+                resProfitEl.innerText = expectedProfit.toFixed(2) + " USDT";
+                resProfitEl.className = "result-value text-long";
+                resRREl.innerText = "1 : " + rrRatio.toFixed(2);
+            }
+        } else {
+            resProfitEl.innerText = "Chưa nhập TP";
+            resProfitEl.className = "result-value";
+            resRREl.innerText = "-";
+        }
+
+        document.getElementById('results').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
