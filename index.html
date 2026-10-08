@@ -1,289 +1,333 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BingX Optimal Position Size</title>
-    <style>
-        :root {
-            --bg-color: #12161c;
-            --panel-bg: #1e2329;
-            --text-color: #eaecef;
-            --label-color: #848e9c;
-            --primary: #fcd535;
-            --primary-hover: #e0bd2e;
-            --danger: #f6465d;
-            --success: #0ecb81;
-            --border: #2b3139;
-            --info: #2ba6f6;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            background-color: var(--panel-bg);
-            padding: 30px;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        h2 {
-            margin-top: 0;
-            text-align: center;
-            color: var(--text-color);
-            font-size: 22px;
-            margin-bottom: 25px;
-        }
-        .form-group { margin-bottom: 15px; }
-        label {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--label-color);
-            font-size: 14px;
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border);
-            color: var(--text-color);
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        .row { display: flex; gap: 15px; }
-        .row .form-group { flex: 1; }
-        button {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--primary);
-            color: #1e2329;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background 0.2s;
-        }
-        button:hover { background-color: var(--primary-hover); }
-        .results {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-        }
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 15px;
-        }
-        .result-value { font-weight: bold; }
-        .text-long { color: var(--success); }
-        .text-short { color: var(--danger); }
-        .text-leverage { color: var(--info); font-size: 18px; }
-        .note {
-            color: var(--label-color);
-            font-size: 12px;
-            margin-top: 15px;
-            text-align: justify;
-            line-height: 1.5;
-            background: rgba(132, 142, 156, 0.1);
-            padding: 10px;
-            border-radius: 6px;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>Tối ưu Khối lượng & Đòn bẩy BingX</h2>
-    
-    <div class="row">
-        <div class="form-group">
-            <label>Tổng vốn (USDT)</label>
-            <input type="number" id="capital" placeholder="Ví dụ: 1000" value="1000">
-        </div>
-        <div class="form-group">
-            <label>Rủi ro tối đa (%)</label>
-            <input type="number" id="riskPercent" placeholder="Ví dụ: 2" value="2" step="0.1">
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label>Loại lệnh mở (Entry)</label>
-        <select id="entryType">
-            <option value="0.0002">Lệnh Limit (Maker fee: 0.02%)</option>
-            <option value="0.0005">Lệnh Market (Taker fee: 0.05%)</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>Giá Entry</label>
-        <input type="number" id="entry" placeholder="Giá vào lệnh" step="any">
-    </div>
-
-    <div class="row">
-        <div class="form-group">
-            <label>Giá Stop Loss (SL)</label>
-            <input type="number" id="sl" placeholder="Giá cắt lỗ" step="any">
-        </div>
-        <div class="form-group">
-            <label>Giá Take Profit (TP)</label>
-            <input type="number" id="tp" placeholder="Giá chốt lời" step="any">
-        </div>
-    </div>
-
-    <button onclick="calculate()">Tính toán Điểm Tối Ưu</button>
-
-    <div class="results" id="results" style="display: none;">
-        <div class="result-item">
-            <span>Loại lệnh:</span>
-            <span id="resType" class="result-value"></span>
-        </div>
-        <div class="result-item">
-            <span>Số tiền Rủi ro (Risk):</span>
-            <span id="resRiskAmount" class="result-value"></span>
-        </div>
-        <div class="result-item" style="background: rgba(43, 166, 246, 0.1); padding: 8px; border-radius: 4px;">
-            <span>Đòn bẩy Tối ưu (An toàn):</span>
-            <span id="resLeverage" class="result-value text-leverage"></span>
-        </div>
-        <div class="result-item">
-            <span>Khối lượng (Coin):</span>
-            <span id="resSizeCoin" class="result-value" style="color: var(--primary); font-size: 18px;"></span>
-        </div>
-        <div class="result-item">
-            <span>Khối lượng (USDT):</span>
-            <span id="resSizeUsdt" class="result-value"></span>
-        </div>
-        <div class="result-item">
-            <span>Tiền Ký quỹ (Margin) yêu cầu:</span>
-            <span id="resMargin" class="result-value" style="color: var(--primary);"></span>
-        </div>
-        <div class="result-item">
-            <span>Tổng phí giao dịch ước tính:</span>
-            <span id="resFees" class="result-value"></span>
-        </div>
-        <div class="result-item" style="border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px;">
-            <span>Lợi nhuận ước tính (TP):</span>
-            <span id="resProfit" class="result-value text-long"></span>
-        </div>
-        <div class="result-item">
-            <span>Tỷ lệ Risk/Reward (R:R):</span>
-            <span id="resRR" class="result-value"></span>
-        </div>
-
-        <div class="note">
-            * <b>Giải thích:</b> Mức đòn bẩy hiển thị ở trên là mức đòn bẩy lớn nhất (đã làm tròn) để số tiền Ký quỹ (Margin) của bạn được tối ưu nhỏ nhất, nhưng vẫn đảm bảo lệnh chạm Stop loss <b>trước khi</b> chạm giá Thanh lý của sàn. Đóng lệnh SL luôn được tính theo mức phí Taker 0.05%.
-        </div>
-    </div>
-</div>
-
-<script>
-    function calculate() {
-        const capital = parseFloat(document.getElementById('capital').value);
-        const riskPercent = parseFloat(document.getElementById('riskPercent').value);
-        const feeOpen = parseFloat(document.getElementById('entryType').value);
-        const feeClose = 0.0005; // SL/TP là lệnh Taker
-        const entry = parseFloat(document.getElementById('entry').value);
-        const sl = parseFloat(document.getElementById('sl').value);
-        const tp = parseFloat(document.getElementById('tp').value);
-
-        if (!capital || !riskPercent || !entry || !sl) {
-            alert("Vui lòng điền đầy đủ Vốn, Rủi ro, Entry và Stop Loss.");
-            return;
-        }
-        if (entry === sl) {
-            alert("Giá Entry không được trùng với giá Stop Loss.");
-            return;
-        }
-
-        // 1. Xác định vị thế
-        const isLong = entry > sl;
-        const resTypeEl = document.getElementById('resType');
-        resTypeEl.innerText = isLong ? "LONG 🟢" : "SHORT 🔴";
-        resTypeEl.className = "result-value " + (isLong ? "text-long" : "text-short");
-
-        // 2. Tính số tiền rủi ro
-        const riskAmount = capital * (riskPercent / 100);
-
-        // 3. Tính toán Khối lượng (Size) chính xác bao gồm phí
-        const priceDistance = Math.abs(entry - sl);
-        const percentDistance = priceDistance / entry;
-        const feeCostPerCoin = (entry * feeOpen) + (sl * feeClose);
-        
-        const sizeCoin = riskAmount / (priceDistance + feeCostPerCoin);
-        const sizeUsdt = sizeCoin * entry;
-
-        // 4. Tính ĐÒN BẨY TỐI ƯU (Optimal Leverage)
-        // Trong Isolated, Margin = Risk + Lượng ký quỹ duy trì (Maintenance Margin ~ 0.5%) + Phí
-        // Công thức chống cháy trước SL: Leverage <= 1 / (% Khoảng cách SL + % Tổng Phí + % Margin duy trì)
-        const maintenanceMarginRate = 0.005; // 0.5% buffer chuẩn của đa số sàn
-        const totalFeeRate = feeOpen + feeClose;
-        
-        // Đòn bẩy lý thuyết tối đa
-        let maxSafeLeverage = Math.floor(1 / (percentDistance + totalFeeRate + maintenanceMarginRate));
-        
-        // Giới hạn đòn bẩy thông thường của BingX (125x hoặc 150x, ta set max 150)
-        if (maxSafeLeverage > 150) maxSafeLeverage = 150;
-        if (maxSafeLeverage < 1) maxSafeLeverage = 1;
-
-        // 5. Tính Ký quỹ (Margin) dựa trên Đòn bẩy tối ưu
-        const marginRequired = sizeUsdt / maxSafeLeverage;
-        const totalFeesSL = sizeCoin * feeCostPerCoin;
-
-        // 6. Cập nhật Giao diện
-        document.getElementById('resRiskAmount').innerText = riskAmount.toFixed(2) + " USDT";
-        document.getElementById('resLeverage').innerText = maxSafeLeverage + "x";
-        
-        let sizeCoinFormatted = sizeCoin < 1 ? sizeCoin.toFixed(4) : sizeCoin.toFixed(2);
-        document.getElementById('resSizeCoin').innerText = sizeCoinFormatted;
-        
-        document.getElementById('resSizeUsdt').innerText = sizeUsdt.toFixed(2) + " USDT";
-        document.getElementById('resMargin').innerText = marginRequired.toFixed(2) + " USDT";
-        document.getElementById('resFees').innerText = totalFeesSL.toFixed(2) + " USDT";
-
-        // 7. Tính Toán TP & RR
-        const resProfitEl = document.getElementById('resProfit');
-        const resRREl = document.getElementById('resRR');
-        
-        if (tp) {
-            if ((isLong && tp <= entry) || (!isLong && tp >= entry)) {
-                resProfitEl.innerText = "Lỗi giá TP";
-                resProfitEl.className = "result-value text-short";
-                resRREl.innerText = "N/A";
-            } else {
-                const tpDistance = Math.abs(tp - entry);
-                const feeCostTPPerCoin = (entry * feeOpen) + (tp * feeClose);
-                const totalFeesTP = sizeCoin * feeCostTPPerCoin;
-                const expectedProfit = (sizeCoin * tpDistance) - totalFeesTP;
-                const rrRatio = expectedProfit / riskAmount;
-
-                resProfitEl.innerText = expectedProfit.toFixed(2) + " USDT";
-                resProfitEl.className = "result-value text-long";
-                resRREl.innerText = "1 : " + rrRatio.toFixed(2);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turtle Trading Vol & Risk Calculator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            turtle: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+              900: '#14532d',
             }
-        } else {
-            resProfitEl.innerText = "Chưa nhập TP";
-            resProfitEl.className = "result-value";
-            resRREl.innerText = "-";
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased p-4 md:p-8">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <header class="border-b border-slate-800 pb-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-400 tracking-tight flex items-center gap-2">
+          🐢 Turtle Trading Calculator
+        </h1>
+        <p class="text-sm text-slate-400 mt-1">Hệ thống tính toán kích thước vị thế, kim tự tháp (Pyramiding) và quản trị rủi ro cơ chế Dennis-Eckhardt</p>
+      </div>
+      <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Original Turtle Ruleset
+      </div>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Form Inputs: Col 5 -->
+      <div class="lg:col-span-5 space-y-5">
+        
+        <!-- Box 1: Tài khoản & Rủi ro -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-emerald-400 border-b border-slate-800 pb-2">
+            1. Vốn & Quản lý Drawdown
+          </h2>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Số dư hiện tại ($)</label>
+              <input type="number" id="balance" value="10000" step="any" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Đỉnh vốn ban đầu ($)</label>
+              <input type="number" id="peakBalance" value="10000" step="any" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Rủi ro / Unit (%)</label>
+              <select id="riskPercent" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                <option value="0.5">0.5% (Turtle Khuyên dùng)</option>
+                <option value="1.0" selected>1.0% (Chuẩn Dennis)</option>
+                <option value="2.0">2.0% (Rủi ro tối đa)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Đòn bẩy khả dụng (x)</label>
+              <input type="number" id="leverage" value="10" min="1" max="125" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+          </div>
+
+          <div id="drawdownAlert" class="hidden text-xs rounded-lg p-3 bg-amber-950/40 border border-amber-800/80 text-amber-300"></div>
+        </div>
+
+        <!-- Box 2: Thông số lệnh & Thị trường -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-emerald-400 border-b border-slate-800 pb-2">
+            2. Thông số thị trường & N (ATR 20)
+          </h2>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Hướng vào lệnh</label>
+              <select id="direction" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                <option value="LONG">LONG (Mua)</option>
+                <option value="SHORT">SHORT (Bán)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Chiến lược hệ thống</label>
+              <select id="turtleSystem" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                <option value="S1">System 1 (Breakout 20 ngày)</option>
+                <option value="S2">System 2 (Breakout 55 ngày)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Entry Giá ban đầu</label>
+              <input type="number" id="entryPrice" value="65000" step="any" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Độ biến động N (ATR 20)</label>
+              <input type="number" id="atrVal" value="1200" step="any" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button id="calcBtn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 transition text-white font-semibold rounded-lg text-sm shadow">
+              Cập Nhật & Tính Toán
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Results & Details: Col 7 -->
+      <div class="lg:col-span-7 space-y-5">
+        
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs text-slate-400 block mb-1">Vốn danh nghĩa ($)</span>
+            <span id="effectiveCapital" class="text-base font-bold text-slate-100">0</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs text-slate-400 block mb-1">Rủi ro / Unit ($)</span>
+            <span id="riskPerUnit" class="text-base font-bold text-red-400">0</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs text-slate-400 block mb-1">Quy mô 1 Unit (Coin/Lot)</span>
+            <span id="unitSize" class="text-base font-bold text-emerald-400">0</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs text-slate-400 block mb-1">Ký quỹ 1 Unit ($)</span>
+            <span id="initialMargin" class="text-base font-bold text-blue-400">0</span>
+          </div>
+        </div>
+
+        <!-- Pyramiding Ladder (Kế hoạch nhồi 4 Unit) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-emerald-400">
+              3. Thang nhồi lệnh (Pyramiding Ladder - Max 4 Units)
+            </h3>
+            <span class="text-xs text-slate-400">Khoảng cách: 0.5N | SL gốc: 2N</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-800">
+                  <th class="py-2.5 px-2">Vị thế</th>
+                  <th class="py-2.5 px-2">Kích hoạt Entry</th>
+                  <th class="py-2.5 px-2">Vol thêm</th>
+                  <th class="py-2.5 px-2">Dừng lỗ chung (SL)</th>
+                  <th class="py-2.5 px-2">Giá TB (Avg)</th>
+                  <th class="py-2.5 px-2">Rủi ro nếu cắn SL</th>
+                </tr>
+              </thead>
+              <tbody id="pyramidTable" class="divide-y divide-slate-800/60 font-mono">
+                <!-- Nội dung được điền bởi JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Chiến lược thoát hàng (Exit System) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-emerald-400 border-b border-slate-800 pb-2">
+            4. Kế hoạch chốt lời & Thoát lệnh (Exit Protocol)
+          </h3>
+          <div id="exitRuleContent" class="text-xs text-slate-300 leading-relaxed space-y-2">
+            <!-- Nội dung thay đổi theo S1/S2 -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      const balance = parseFloat(document.getElementById('balance').value) || 0;
+      const peakBalance = parseFloat(document.getElementById('peakBalance').value) || balance;
+      const riskPercent = parseFloat(document.getElementById('riskPercent').value) || 1.0;
+      const leverage = parseFloat(document.getElementById('leverage').value) || 1;
+      const direction = document.getElementById('direction').value;
+      const system = document.getElementById('turtleSystem').value;
+      const entryPrice = parseFloat(document.getElementById('entryPrice').value) || 0;
+      const N = parseFloat(document.getElementById('atrVal').value) || 0;
+
+      if (entryPrice <= 0 || N <= 0 || balance <= 0) return;
+
+      // 1. Áp dụng quy tắc Drawdown (Rule 5: Dennis-Eckhardt De-leveraging)
+      let adjustedBalance = balance;
+      let drawdownText = '';
+      if (peakBalance > balance) {
+        const ddPercent = ((peakBalance - balance) / peakBalance) * 100;
+        if (ddPercent >= 10) {
+          // Cứ giảm 10% vốn thì tính toán như thể đã giảm 20%
+          const penaltyFactor = (ddPercent * 2) / 100;
+          adjustedBalance = peakBalance * (1 - penaltyFactor);
+          if (adjustedBalance < 0) adjustedBalance = balance * 0.5;
+
+          drawdownText = `⚠️ <strong>Quy tắc Drawdown kích hoạt:</strong> Tài khoản giảm ${ddPercent.toFixed(1)}% từ đỉnh. Vốn danh nghĩa để tính rủi ro bị phạt kép xuống còn <strong>$${adjustedBalance.toFixed(2)}</strong> (thay vì $${balance.toFixed(2)}).`;
+        }
+      }
+
+      const alertBox = document.getElementById('drawdownAlert');
+      if (drawdownText) {
+        alertBox.innerHTML = drawdownText;
+        alertBox.classList.remove('hidden');
+      } else {
+        alertBox.classList.add('hidden');
+      }
+
+      // 2. Tính kích thước 1 Unit
+      // Stop Loss cách Entry = 2N
+      const stopDistance = 2 * N;
+      const maxRiskDollar = adjustedBalance * (riskPercent / 100);
+      
+      // Volume = Rủi ro tối đa / Khoảng cách dừng lỗ
+      const unitVol = maxRiskDollar / stopDistance;
+      const marginPerUnit = (unitVol * entryPrice) / leverage;
+
+      document.getElementById('effectiveCapital').textContent = '$' + adjustedBalance.toLocaleString(undefined, {maximumFractionDigits: 1});
+      document.getElementById('riskPerUnit').textContent = '$' + maxRiskDollar.toLocaleString(undefined, {maximumFractionDigits: 1});
+      document.getElementById('unitSize').textContent = unitVol.toFixed(4);
+      document.getElementById('initialMargin').textContent = '$' + marginPerUnit.toFixed(1);
+
+      // 3. Xây dựng thang nhồi lệnh (Pyramiding Ladder: 4 Units)
+      const tableBody = document.getElementById('pyramidTable');
+      tableBody.innerHTML = '';
+
+      let cumulativeUnits = 0;
+      let totalCost = 0;
+      let units = [];
+
+      for (let i = 0; i < 4; i++) {
+        const stepEntry = direction === 'LONG' 
+          ? entryPrice + (i * 0.5 * N) 
+          : entryPrice - (i * 0.5 * N);
+        
+        cumulativeUnits += unitVol;
+        totalCost += stepEntry * unitVol;
+        const avgPrice = totalCost / cumulativeUnits;
+
+        // Điểm SL mới cho TẤT CẢ các unit trước đó = Entry mới nhất - 2N
+        const unifiedSL = direction === 'LONG' 
+          ? stepEntry - (2 * N) 
+          : stepEntry + (2 * N);
+
+        // Tính rủi ro khi chạm SL này
+        let totalPnlIfStopped = 0;
+        for (let j = 0; j <= i; j++) {
+          const entry_j = units[j] ? units[j].entry : entryPrice;
+          const pnl_j = direction === 'LONG' 
+            ? (unifiedSL - entry_j) * unitVol 
+            : (entry_j - unifiedSL) * unitVol;
+          totalPnlIfStopped += pnl_j;
         }
 
-        document.getElementById('results').style.display = 'block';
-    }
-</script>
+        units.push({ entry: stepEntry });
 
+        const row = document.createElement('tr');
+        row.className = i % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-900/90';
+        
+        const riskColor = totalPnlIfStopped <= 0 ? 'text-amber-400' : 'text-emerald-400';
+
+        row.innerHTML = `
+          <td class="py-2.5 px-2 font-bold text-slate-200">Unit ${i + 1}</td>
+          <td class="py-2.5 px-2 text-slate-100">${stepEntry.toFixed(2)}</td>
+          <td class="py-2.5 px-2 text-slate-300">${unitVol.toFixed(4)}</td>
+          <td class="py-2.5 px-2 text-red-400 font-semibold">${unifiedSL.toFixed(2)}</td>
+          <td class="py-2.5 px-2 text-slate-300">${avgPrice.toFixed(2)}</td>
+          <td class="py-2.5 px-2 ${riskColor} font-bold">${totalPnlIfStopped >= 0 ? '+' : ''}${totalPnlIfStopped.toFixed(1)}$</td>
+        `;
+        tableBody.appendChild(row);
+      }
+
+      // 4. Cập nhật chỉ dẫn thoát lệnh
+      const exitContainer = document.getElementById('exitRuleContent');
+      if (system === 'S1') {
+        exitContainer.innerHTML = `
+          <p>• <strong>Kích hoạt:</strong> Hệ thống ngắn hạn System 1 (Breakout Donchian 20 ngày).</p>
+          <p>• <strong>Quy tắc Thoát lệnh (TP/Exit):</strong> Đóng toàn bộ vị thế khi giá chạm <strong>đỉnh/đáy 10 ngày đối lập</strong> (${direction === 'LONG' ? 'chạm đáy 10 ngày thấp nhất' : 'chạm đỉnh 10 ngày cao nhất'}).</p>
+          <p>• <strong>Bỏ qua tín hiệu (Filter):</strong> Nếu breakout gần nhất trước đó là một lệnh thắng, bỏ qua tín hiệu System 1 này (chờ System 2).</p>
+        `;
+      } else {
+        exitContainer.innerHTML = `
+          <p>• <strong>Kích hoạt:</strong> Hệ thống dài hạn System 2 (Breakout Donchian 55 ngày).</p>
+          <p>• <strong>Quy tắc Thoát lệnh (TP/Exit):</strong> Đóng toàn bộ vị thế khi giá chạm <strong>đỉnh/đáy 20 ngày đối lập</strong> (${direction === 'LONG' ? 'chạm đáy 20 ngày thấp nhất' : 'chạm đỉnh 20 ngày cao nhất'}).</p>
+          <p>• <strong>Quy tắc vào lệnh:</strong> Chấp nhận mọi tín hiệu breakout 55 ngày mà không cần áp dụng bộ lọc lệnh thắng trước đó.</p>
+        `;
+      }
+    }
+
+    // Gắn sự kiện tính toán tự động
+    ['balance', 'peakBalance', 'riskPercent', 'leverage', 'direction', 'turtleSystem', 'entryPrice', 'atrVal'].forEach(id => {
+      document.getElementById(id).addEventListener('input', calculate);
+      document.getElementById(id).addEventListener('change', calculate);
+    });
+
+    document.getElementById('calcBtn').addEventListener('click', calculate);
+
+    // Chạy mặc định lần đầu
+    calculate();
+  </script>
 </body>
 </html>
